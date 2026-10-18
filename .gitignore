@@ -8,6 +8,7 @@ __pycache__/
 # Secrets & Config
 .env
 .env.*
+!.env.example
 .claude/
 .agents/
 
