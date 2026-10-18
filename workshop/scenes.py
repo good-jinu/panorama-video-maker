@@ -128,8 +128,8 @@ def compose_extended_scene(
     """Stitch a static left background extension onto an animated sprite sheet.
 
     Args:
-        sprite_frames: List of animated frames (e.g. couple eating dinner).
-        left_bg: Static panoramic background (e.g. outdoor patio + restaurant).
+        sprite_frames: List of animated frames (e.g. foreground character action).
+        left_bg: Static panoramic background (e.g. scene background extension).
         offset: X-coordinate in the combined canvas where sprite_frames are pasted.
                 The left_bg is pasted at (0, 0), and sprite_frames are pasted at (offset, video_y).
         video_scale: Scale factor applied to the animated video/sprite frames.

@@ -1,6 +1,8 @@
 # Example Timeline Configuration for Long-Form Multi-Scene Video Compositing
 # Copy this file to `timelines/my-timeline.toml` and customize.
 
+title = "Timeline Example"
+
 [camera]
 width = 640
 height = 360

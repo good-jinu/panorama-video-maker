@@ -25,3 +25,10 @@ jobs/*.toml
 
 timelines/*.toml
 !timelines/*.example.toml
+
+# Databases & Local state
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3

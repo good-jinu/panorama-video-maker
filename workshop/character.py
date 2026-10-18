@@ -37,7 +37,7 @@ def create_contact_shadow(
 
 
 class CharacterActor:
-    """High-level foreground animated actor (e.g., walking cat)."""
+    """High-level foreground animated actor (e.g. walking character, avatar, or mascot)."""
 
     def __init__(
         self,

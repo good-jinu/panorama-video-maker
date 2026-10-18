@@ -3,130 +3,980 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sprite Player</title>
+<title>AI Video Studio Platform &bull; Content Production Engine</title>
 <style>
-  :root { --bg:#111; --panel:#1b1b1b; --fg:#eee; --muted:#999; --accent:#7cc4ff; }
+  :root {
+    --bg: #090d16;
+    --surface: #111827;
+    --surface-hover: #1f293d;
+    --border: #233044;
+    --text: #f3f4f6;
+    --muted: #94a3b8;
+    --primary: #38bdf8;
+    --primary-hover: #0ea5e9;
+    --accent: #a855f7;
+    --accent-hover: #9333ea;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --cyan: #06b6d4;
+  }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:14px system-ui, sans-serif;
-         display:flex; flex-direction:column; align-items:center; gap:16px; padding:16px; }
-  h1 { font-size:16px; font-weight:600; margin:0; }
-  #stage { border-radius:8px; max-width:100%; overflow:hidden; line-height:0; }
-  #stage.checker { background:conic-gradient(#ccc 25%,#fff 0 50%,#ccc 0 75%,#fff 0) 0 0/24px 24px; }
-  #sprite { image-rendering:auto; }
-  .panel { background:var(--panel); border-radius:8px; padding:12px 16px; display:grid;
-           grid-template-columns:auto 1fr auto; gap:10px 12px; align-items:center; width:min(640px,100%); }
-  .panel label { color:var(--muted); }
-  .panel output { min-width:4ch; text-align:right; font-variant-numeric:tabular-nums; }
-  input[type=range] { width:100%; accent-color:var(--accent); }
-  input[type=number] { background:#2a2a2a; color:var(--fg); border:1px solid #3a3a3a; border-radius:6px; padding:6px 8px; font:inherit; width:100%; }
-  .row { grid-column:1/-1; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  button, select { background:#2a2a2a; color:var(--fg); border:1px solid #3a3a3a; border-radius:6px; padding:6px 12px; font:inherit; cursor:pointer; }
-  button:hover { border-color:var(--accent); }
-  #sheetWrap { width:min(1000px,100%); }
-  #sheetWrap summary { cursor:pointer; color:var(--muted); margin-bottom:8px; }
-  #sheet { width:100%; border-radius:8px; background:conic-gradient(#ccc 25%,#fff 0 50%,#ccc 0 75%,#fff 0) 0 0/24px 24px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand h1 { margin: 0; font-size: 17px; font-weight: 700; color: var(--primary); letter-spacing: -0.01em; }
+  .badge {
+    background: #064e3b;
+    color: var(--success);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .badge.purple { background: #3b0764; color: #d8b4fe; }
+  .badge.cyan { background: #083344; color: #67e8f9; }
+  .badge.amber { background: #451a03; color: #fcd34d; }
+  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .container {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 20px;
+    padding: 20px 24px;
+    flex: 1;
+  }
+  @media (max-width: 1024px) {
+    .container { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text);
+  }
+
+  label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  input, select, textarea {
+    background: #070b12;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font: inherit;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  button {
+    background: var(--surface-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  button:hover { border-color: var(--primary); color: #fff; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.primary {
+    background: var(--primary);
+    color: #070b12;
+    border: none;
+    font-weight: 600;
+  }
+  button.primary:hover { background: var(--primary-hover); }
+  button.accent {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+  }
+  button.accent:hover { background: var(--accent-hover); }
+  button.cyan {
+    background: var(--cyan);
+    color: #070b12;
+    border: none;
+    font-weight: 600;
+  }
+  button.sm { padding: 4px 10px; font-size: 12px; }
+
+  .scene-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 480px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .scene-item {
+    background: #0a101a;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.15s;
+  }
+  .scene-item:hover { border-color: var(--primary); }
+  .scene-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .scene-name { font-weight: 600; font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .scene-meta { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .preview-stage {
+    background: #000;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  }
+  video { width: 100%; height: 100%; object-fit: contain; }
+  .empty-preview { color: var(--muted); text-align: center; font-size: 14px; }
+
+  .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); padding-bottom: 8px; flex-wrap: wrap; }
+  .tab {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+  .tab.active { color: var(--primary); background: #0f1c2e; border: 1px solid var(--border); }
+
+  .render-box {
+    background: #070b12;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .progress-bar-bg {
+    background: #172233;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    background: var(--primary);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .video-switcher {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .video-pill {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 999px;
+    background: var(--surface-hover);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .video-pill.active {
+    background: #082f49;
+    border-color: var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .media-info-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #080d16;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; }
+
+  .storyboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  .storyboard-card {
+    background: #080d16;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .storyboard-card-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
-<h1>Munchkin walking: sprite player</h1>
-<div id="stage" class="checker"><div id="sprite"></div></div>
 
-<div class="panel">
-  <div class="row">
-    <button id="play">Pause</button>
-    <button id="prev">&larr;</button>
-    <button id="next">&rarr;</button>
-    <select id="bg">
-      <option value="checker">Checkerboard</option>
-      <option value="#ffffff">White</option>
-      <option value="#222222">Dark</option>
-      <option value="#3fa34d">Green</option>
-      <option value="linear-gradient(to bottom, #142230, #355a7d)">Gradation (Blue Stage)</option>
-      <option value="radial-gradient(circle at 50% 45%, #3d648c, #111c26)">Gradation (Spotlight)</option>
-      <option value="linear-gradient(to bottom, #2e1065, #7c3aed, #f59e0b)">Gradation (Sunset)</option>
-      <option value="linear-gradient(to bottom, #2d3748, #1a202c)">Gradation (Studio Dark)</option>
-    </select>
+<header>
+  <div class="brand">
+    <h1>AI Video Studio Platform</h1>
+    <span class="badge">&bull; SQLite DB Ready</span>
+    <span class="badge purple">&bull; MCP Server Mounted</span>
+    <span class="badge cyan" id="scenesBadge">&bull; 0 Scenes Loaded</span>
   </div>
-  <label for="frame">Frame</label><input id="frame" type="range" min="0" value="0"><output id="frameOut">0</output>
-  <label for="fps">FPS</label><input id="fps" type="range" min="1" max="30" value="4"><output id="fpsOut">4</output>
-  <label for="scale">Scale</label><input id="scale" type="range" min="0.25" max="1.5" step="0.05" value="1"><output id="scaleOut">1.0×</output>
-</div>
+  <div class="header-actions">
+    <button id="btnHeaderRenderOdyssey" class="primary sm">🚀 Render Active Timeline</button>
+    <select id="projectSelect" style="width: 220px; font-size:12px;"></select>
+    <button id="btnSyncToml" class="sm" title="Re-sync timeline config from disk">🔄 Sync TOML</button>
+  </div>
+</header>
 
-<div class="panel">
-  <label for="cols">Columns</label><input id="cols" type="number" min="1" value="4"><span></span>
-  <label for="rows">Rows</label><input id="rows" type="number" min="1" value="7"><span></span>
-  <label for="count">Frames</label><input id="count" type="number" min="1" value="28"><span></span>
-  <div class="row"><label for="file">Sprite image</label><input id="file" type="file" accept="image/*"></div>
-</div>
+<div class="container">
+  <!-- Left Column: Timeline Project & Scenes -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    <!-- Project & Character Config -->
+    <div class="card">
+      <h2 class="card-title">
+        <span>Timeline Engine Specs</span>
+        <button id="btnSaveProject" class="sm">Save Specs</button>
+      </h2>
+      <div class="form-group">
+        <label>Project Title</label>
+        <input id="projTitle" type="text" placeholder="e.g. Continuous Storyboard">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Canvas Resolution</label>
+          <select id="projRes">
+            <option value="640x360">640 &times; 360 (Fast / Landscape)</option>
+            <option value="1280x720">1280 &times; 720 (HD)</option>
+            <option value="1920x1080">1920 &times; 1080 (FHD)</option>
+            <option value="1080x1920">1080 &times; 1920 (Shorts / Reels)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>FPS</label>
+          <input id="projFps" type="number" value="24" min="1" max="60">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Stride Locking (px/stride)</label>
+          <input id="projStride" type="number" step="0.1" value="165.8">
+        </div>
+        <div class="form-group">
+          <label>Floor Y Coordinate</label>
+          <input id="projFloorY" type="number" value="352">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Character Actor Sprite</label>
+        <input id="projCharSheet" type="text" placeholder="outputs/character/sprite_walk.png">
+      </div>
+    </div>
 
-<details id="sheetWrap">
-  <summary>Show full sprite sheet</summary>
-  <img id="sheet" alt="sprite sheet">
-</details>
+    <!-- Timeline Scenes -->
+    <div class="card">
+      <h2 class="card-title">
+        <span>Story Scenes (<span id="sceneCount">0</span>)</span>
+        <div style="display:flex; gap:6px;">
+          <button id="btnQuickAppendModal" class="sm accent">🎬 Append Video</button>
+          <button id="btnAddSceneManual" class="sm">+ Custom</button>
+        </div>
+      </h2>
+      <div id="scenesList" class="scene-list">
+        <div class="empty-preview" style="padding:20px 0;">Loading scenes from SQLite database...</div>
+      </div>
+    </div>
+
+    <!-- Asynchronous Video Compositor Box -->
+    <div class="card">
+      <h2 class="card-title">Asynchronous Video Compositor</h2>
+      <div class="render-box">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span id="renderStatusText" style="font-weight:600; font-size:12px;">Ready to composite</span>
+          <span id="renderPercent" style="font-size:12px; color:var(--muted);">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div id="renderProgressBar" class="progress-bar-fill"></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="btnTriggerRender" class="primary" style="flex:1; padding:10px;">Render Timeline (MP4)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Interactive Stage & Pipeline Tools -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="cinema">🎥 Video Player</button>
+        <button class="tab" data-tab="storyboard">🗺️ Multi-Scene Storyboard</button>
+        <button class="tab" data-tab="auto-scene">🎬 Auto Add Video Scene</button>
+        <button class="tab" data-tab="bridge-gen">🌉 AI Bridge Generator</button>
+        <button class="tab" data-tab="music-station">🎵 Music Station Looper</button>
+        <button class="tab" data-tab="assets">📜 Asset Lineage &amp; Provenance</button>
+      </div>
+
+      <!-- Tab 1: Video Player -->
+      <div id="tabCinemaContent" style="display:flex; flex-direction:column; gap:14px;">
+        <!-- Video Switcher -->
+        <div class="video-switcher">
+          <span style="font-size:12px; color:var(--muted); font-weight:600;">Active Stream:</span>
+          <span class="video-pill active" id="pillPrimary" onclick="switchVideo('primary')">🎬 Timeline Render Output</span>
+          <span class="video-pill" id="pillMusicStation" onclick="switchVideo('music_station')">🎵 Music Station Output</span>
+        </div>
+
+        <div class="preview-stage">
+          <video id="player" controls autoplay loop playsinline></video>
+          <div id="noVideoMsg" class="empty-preview" style="display:none;">
+            No video loaded. Click "Render Timeline (MP4)" or select a stream.
+          </div>
+        </div>
+
+        <!-- Media Info Bar -->
+        <div class="media-info-bar">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="badge" id="videoResBadge">640 &times; 360 @ 24fps</span>
+            <span class="badge purple" id="videoStrideBadge">Stride Locked</span>
+            <span id="videoPathText" style="font-family:monospace; color:var(--muted);">-</span>
+          </div>
+          <div>
+            <a id="btnDownload" href="#" download style="color:var(--primary); text-decoration:none; font-weight:600;">&darr; Download MP4</a>
+          </div>
+        </div>
+
+        <!-- 1-Click Action Bar -->
+        <div style="display:grid; grid-template-columns: 1fr; gap:10px;">
+          <button id="btnActionRenderOdyssey" class="primary" style="padding:12px;">
+            🚀 Render Multi-Scene Timeline Video
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 2: Storyboard Inspector -->
+      <div id="tabStoryboardContent" style="display:none; flex-direction:column; gap:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0; font-size:14px;">Multi-Scene Storyboard &amp; Transition Bridges</h3>
+          <span style="font-size:12px; color:var(--muted);">Linear 1D World Streaming Order</span>
+        </div>
+        <div id="storyboardContainer" class="storyboard-grid"></div>
+      </div>
+
+      <!-- Tab 3: Auto Add Video Scene (One-Command Append) -->
+      <div id="tabAutoSceneContent" style="display:none; flex-direction:column; gap:12px;">
+        <p style="font-size:13px; color:var(--muted); margin:0;">
+          One-Command Pipeline: Automatically converts an input MP4 into a sprite sheet, synthesizes an OpenAI seamless transition bridge from the preceding scene, aligns stride offset & anim delay, and appends into the timeline.
+        </p>
+        <div class="form-row">
+          <div class="form-group" style="flex:1;">
+            <label>Input Video File Path</label>
+            <input id="autoVideoPath" type="text" placeholder="inputs/videos/scene_clip.mp4">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Scene ID / Name</label>
+            <input id="autoSceneName" type="text" placeholder="e.g. scene_garden">
+          </div>
+          <div class="form-group">
+            <label>Video Scale (0.5 ~ 1.0)</label>
+            <input id="autoVideoScale" type="number" step="0.05" value="0.75">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Transition Bridge Prompt (OpenAI Sunburst)</label>
+          <textarea id="autoBridgePrompt" rows="2" placeholder="e.g. Modern architectural corridor dividing wall with bronze slats and warm sunlight, matching the two adjacent rooms seamlessly. Do NOT add extra people."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hold Duration (s)</label>
+            <input id="autoHoldDur" type="number" step="1.0" value="0.0">
+          </div>
+          <div class="form-group">
+            <label>Seam Feather Width (px)</label>
+            <input id="autoSeamFeather" type="number" value="16">
+          </div>
+        </div>
+        <button id="btnExecuteAutoAppend" class="accent" style="padding:10px;">Execute End-to-End Scene Append</button>
+      </div>
+
+      <!-- Tab 4: AI Bridge Generator -->
+      <div id="tabBridgeGenContent" style="display:none; flex-direction:column; gap:12px;">
+        <h3 style="margin:0; font-size:14px;">OpenAI Panoramic Transition Bridge Generator</h3>
+        <p style="font-size:13px; color:var(--muted); margin:0;">
+          Outpaints a seamless 1536&times;512 transition bridge connecting the right edge of the preceding scene to the left edge of the next scene.
+        </p>
+        <div class="form-row">
+          <div class="form-group">
+            <label>From Sheet (Left Scene)</label>
+            <input id="bridgeFromSheet" type="text" placeholder="outputs/scene_a/sprite_bg.png">
+          </div>
+          <div class="form-group">
+            <label>To Sheet (Right Scene)</label>
+            <input id="bridgeToSheet" type="text" placeholder="outputs/scene_b/sprite_bg.png">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Transition Prompt</label>
+          <textarea id="bridgePrompt" rows="2" placeholder="Architectural transition wall, natural gradient, continuous floor line, seamless lighting."></textarea>
+        </div>
+        <button id="btnExecuteBridgeGen" class="primary">Generate Transition Bridge Image</button>
+      </div>
+
+      <!-- Tab 5: Music Station Looper -->
+      <div id="tabMusicStationContent" style="display:none; flex-direction:column; gap:12px;">
+        <h3 style="margin:0; font-size:14px;">Audio &amp; Music Station Looper</h3>
+        <p style="font-size:13px; color:var(--muted); margin:0;">
+          Downloads audio tracks via yt-dlp, normalizes audio to 48kHz stereo AAC, and stream-loops a video across the full playlist duration.
+        </p>
+        <div class="form-group">
+          <label>Source Video Path</label>
+          <input id="musicVideoPath" type="text" placeholder="outputs/rendered/my_video.mp4">
+        </div>
+        <div class="form-group">
+          <label>Audio / YouTube URLs (one per line)</label>
+          <textarea id="musicUrls" rows="4" placeholder="https://www.youtube.com/watch?v=..."></textarea>
+        </div>
+        <button id="btnExecuteMusicStation" class="accent" style="padding:10px;">Build Music Station MP4</button>
+      </div>
+
+      <!-- Tab 6: Asset Lineage -->
+      <div id="tabAssetsContent" style="display:none; flex-direction:column; gap:12px;">
+        <h3 style="margin:0; font-size:14px;">Generative Asset Lineage &amp; Model Provenance</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Path</th>
+              <th>Model / Engine</th>
+              <th>Prompt / Provenance</th>
+              <th>Version</th>
+            </tr>
+          </thead>
+          <tbody id="assetsTableBody">
+            <tr><td colspan="5" style="text-align:center; color:var(--muted);">Loading lineage data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
-// Animates a sprite sheet from the image alone. Frame size = image size / grid.
-// Defaults can be overridden: ?src=...&cols=4&rows=7&frames=28&fps=4
-const q = new URLSearchParams(location.search);
-const SRC = q.get("src") || "../outputs/munchkin-walking/sprite_4x7.png";
+const API_BASE = window.location.origin;
+let currentProjectId = null;
+let currentProjectData = null;
+let pollTimer = null;
+let activeVideoMode = "primary";
+
 const $ = id => document.getElementById(id);
-const el = $("sprite"), stage = $("stage");
-let img = null, frame = 0, playing = true, last = 0, acc = 0;
-const grid = () => ({ cols: Math.max(1, +$("cols").value | 0), rows: Math.max(1, +$("rows").value | 0),
-                      count: Math.max(1, +$("count").value | 0) });
 
-function render() {
-  if (!img) return;
-  const { cols, rows, count } = grid();
-  const fw = img.naturalWidth / cols, fh = img.naturalHeight / rows;
-  const s = +$("scale").value; $("scaleOut").textContent = s.toFixed(2) + "×";
-  frame = ((frame % count) + count) % count;
-  const c = frame % cols, r = Math.floor(frame / cols);
-  el.style.width = fw * s + "px"; el.style.height = fh * s + "px";
-  el.style.backgroundSize = `${img.naturalWidth * s}px ${img.naturalHeight * s}px`;
-  el.style.backgroundPosition = `${-c * fw * s}px ${-r * fh * s}px`;
-  $("frame").max = count - 1; $("frame").value = frame; $("frameOut").textContent = frame;
-}
-const show = i => { frame = i; render(); };
-const stop = () => { playing = false; $("play").textContent = "Play"; };
+// Video switcher
+function switchVideo(mode) {
+  activeVideoMode = mode;
+  document.querySelectorAll(".video-pill").forEach(p => p.classList.remove("active"));
+  const player = $("player");
+  const noVideo = $("noVideoMsg");
+  const pathText = $("videoPathText");
+  const dlBtn = $("btnDownload");
 
-function load(url) {
-  const im = new Image();
-  im.onload = () => {
-    img = im;
-    el.style.backgroundImage = `url("${url}")`; el.style.backgroundRepeat = "no-repeat";
-    $("sheet").src = url; frame = 0; render();
-  };
-  im.src = url;
-}
-
-function tick(t) {
-  if (playing && img) {
-    acc += t - last;
-    const step = 1000 / +$("fps").value;
-    while (acc >= step) { acc -= step; show(frame + 1); }
+  if (mode === "primary") {
+    $("pillPrimary").classList.add("active");
+    if (currentProjectData && currentProjectData.render_jobs && currentProjectData.render_jobs.length > 0) {
+      const completedJobs = currentProjectData.render_jobs.filter(j => j.status === "COMPLETED" && j.output_path);
+      const lastJob = completedJobs.length > 0 ? completedJobs[completedJobs.length - 1] : null;
+      if (lastJob && lastJob.output_path) {
+        const url = `${API_BASE}/${lastJob.output_path}`;
+        player.src = url;
+        player.style.display = "block";
+        noVideo.style.display = "none";
+        pathText.textContent = lastJob.output_path;
+        dlBtn.href = url;
+        player.play().catch(() => {});
+        return;
+      }
+    }
+    player.style.display = "none";
+    noVideo.style.display = "block";
+    noVideo.textContent = "No rendered timeline video found. Click 'Render Active Timeline' to composite.";
+  } else if (mode === "music_station") {
+    $("pillMusicStation").classList.add("active");
+    if (currentProjectData && currentProjectData.assets) {
+      const msAsset = currentProjectData.assets.find(a => a.model_name === "workshop.music_station");
+      if (msAsset) {
+        const url = `${API_BASE}/${msAsset.file_path}`;
+        player.src = url;
+        player.style.display = "block";
+        noVideo.style.display = "none";
+        pathText.textContent = msAsset.file_path;
+        dlBtn.href = url;
+        player.play().catch(() => {});
+        return;
+      }
+    }
+    player.style.display = "none";
+    noVideo.style.display = "block";
+    noVideo.textContent = "No music station video found. Generate one in the Music Station Looper tab.";
   }
-  last = t; requestAnimationFrame(tick);
 }
 
-$("cols").value = q.get("cols") || 4; $("rows").value = q.get("rows") || 7;
-$("count").value = q.get("frames") || 28;
-$("fps").value = q.get("fps") || 4; $("fpsOut").textContent = $("fps").value;
-load(SRC); requestAnimationFrame(t => { last = t; tick(t); });
+async function loadProjects() {
+  try {
+    const res = await fetch(`${API_BASE}/api/projects`);
+    const projects = await res.json();
+    const sel = $("projectSelect");
+    sel.innerHTML = "";
 
-$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; };
-$("prev").onclick = () => { stop(); show(frame - 1); };
-$("next").onclick = () => { stop(); show(frame + 1); };
-$("frame").oninput = e => { stop(); show(+e.target.value); };
-$("fps").oninput = e => { $("fpsOut").textContent = e.target.value; };
-$("scale").oninput = render;
-for (const id of ["cols", "rows", "count"]) $(id).oninput = render;
-$("file").onchange = e => { const f = e.target.files[0]; if (f) load(URL.createObjectURL(f)); };
-$("bg").onchange = e => {
-  const v = e.target.value;
-  stage.classList.toggle("checker", v === "checker");
-  stage.style.background = v === "checker" ? "" : v;
+    // If no projects exist, import example timeline automatically
+    if (projects.length === 0) {
+      await fetch(`${API_BASE}/api/timeline/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toml_path: "timelines/timeline.example.toml" })
+      });
+      const refreshRes = await fetch(`${API_BASE}/api/projects`);
+      const refreshed = await refreshRes.json();
+      projects.push(...refreshed);
+    }
+
+    projects.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.id}. ${p.title}`;
+      sel.appendChild(opt);
+    });
+
+    currentProjectId = projects[0] ? projects[0].id : null;
+    if (currentProjectId) {
+      sel.value = currentProjectId;
+      await loadProjectDetails(currentProjectId);
+      switchVideo("primary");
+    }
+  } catch (err) {
+    console.error("Failed to load projects:", err);
+  }
+}
+
+async function loadProjectDetails(id) {
+  try {
+    const res = await fetch(`${API_BASE}/api/projects/${id}`);
+    const data = await res.json();
+    currentProjectData = data;
+
+    $("projTitle").value = data.title;
+    $("projRes").value = `${data.canvas_w}x${data.canvas_h}`;
+    $("projFps").value = data.fps;
+    $("projCharSheet").value = data.char_sheet || "";
+    $("projStride").value = data.stride_pixels || 165.8;
+    $("projFloorY").value = data.floor_y || 352;
+    $("sceneCount").textContent = data.scenes ? data.scenes.length : 0;
+
+    renderScenes(data.scenes || []);
+    renderStoryboard(data.scenes || []);
+    renderAssets(data.assets || []);
+
+    if (data.render_jobs && data.render_jobs.length > 0) {
+      const lastJob = data.render_jobs[data.render_jobs.length - 1];
+      updateJobUI(lastJob);
+    }
+  } catch (err) {
+    console.error("Failed to fetch project details:", err);
+  }
+}
+
+function renderScenes(scenes) {
+  const list = $("scenesList");
+  list.innerHTML = "";
+  if (!scenes || scenes.length === 0) {
+    list.innerHTML = '<div class="empty-preview" style="padding:20px 0;">No scenes in this project yet.</div>';
+    return;
+  }
+
+  scenes.forEach(s => {
+    const item = document.createElement("div");
+    item.className = "scene-item";
+    const bridgeText = s.left_bg_path ? `<span class="badge cyan">bridge</span>` : '';
+    const pingpongText = s.pingpong ? `<span class="badge amber">pingpong</span>` : '';
+    const holdText = s.hold_duration > 0 ? `<span class="badge purple">${s.hold_duration}s hold</span>` : '';
+
+    item.innerHTML = `
+      <div class="scene-info">
+        <div class="scene-name">
+          <span>${s.order_idx + 1}. ${s.name}</span>
+          ${bridgeText}
+          ${pingpongText}
+          ${holdText}
+        </div>
+        <div class="scene-meta">${s.sheet_path} (scale: ${s.video_scale || s.scale})</div>
+      </div>
+      <div>
+        <button class="sm" onclick="deleteScene(${s.id})" title="Remove scene">&times;</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function renderStoryboard(scenes) {
+  const grid = $("storyboardContainer");
+  grid.innerHTML = "";
+  if (!scenes || scenes.length === 0) {
+    grid.innerHTML = '<div class="empty-preview" style="grid-column: 1/-1; padding:30px;">No scenes available.</div>';
+    return;
+  }
+
+  scenes.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "storyboard-card";
+    const bridgeInfo = s.left_bg_path
+      ? `<div style="font-size:11px; color:#67e8f9; word-break:break-all;"><b>Bridge:</b> ${s.left_bg_path}</div>`
+      : `<div style="font-size:11px; color:var(--muted);">No transition bridge (Scene 1)</div>`;
+
+    card.innerHTML = `
+      <div class="storyboard-card-header">
+        <span>#${s.order_idx + 1} &bull; ${s.name}</span>
+        <span style="color:var(--muted);">${s.scale}x scale</span>
+      </div>
+      <div style="font-size:11px; color:var(--muted); word-break:break-all;">
+        <b>Sheet:</b> ${s.sheet_path}
+      </div>
+      ${bridgeInfo}
+      <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">
+        ${s.pingpong ? '<span class="badge amber">PingPong</span>' : ''}
+        ${s.anim_delay > 0 ? `<span class="badge cyan">Delay: ${s.anim_delay}s</span>` : ''}
+        ${s.hold_duration > 0 ? `<span class="badge purple">Hold: ${s.hold_duration}s</span>` : ''}
+        ${s.seam_feather_width ? `<span class="badge">Seam: ${s.seam_feather_width}px</span>` : ''}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderAssets(assets) {
+  const tbody = $("assetsTableBody");
+  tbody.innerHTML = "";
+  if (!assets || assets.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted);">No generative assets recorded yet.</td></tr>';
+    return;
+  }
+
+  assets.forEach(a => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="badge" style="background:#1e3a5f; color:#93c5fd;">${a.asset_type}</span></td>
+      <td style="font-family:monospace; font-size:11px;">${a.file_path}</td>
+      <td>${a.model_name || '-'}</td>
+      <td style="color:var(--muted); max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${a.prompt || '-'}</td>
+      <td>v${a.version}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Render Actions
+async function triggerProjectRender() {
+  if (!currentProjectId) { alert("Please select a project first"); return; }
+  try {
+    $("renderStatusText").textContent = "Submitting render job...";
+    $("renderProgressBar").style.width = "10%";
+    const res = await fetch(`${API_BASE}/api/projects/${currentProjectId}/render`, { method: "POST" });
+    const job = await res.json();
+    startPolling(job.id);
+  } catch (err) {
+    alert("Render failed to trigger: " + err);
+  }
+}
+
+$("btnHeaderRenderOdyssey").onclick = triggerProjectRender;
+$("btnActionRenderOdyssey").onclick = triggerProjectRender;
+$("btnTriggerRender").onclick = triggerProjectRender;
+
+function startPolling(jobId) {
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+      const job = await res.json();
+      updateJobUI(job);
+
+      if (job.status === "COMPLETED" || job.status === "FAILED") {
+        clearInterval(pollTimer);
+        $("btnTriggerRender").disabled = false;
+        loadProjectDetails(currentProjectId);
+      }
+    } catch (err) {
+      clearInterval(pollTimer);
+      $("btnTriggerRender").disabled = false;
+    }
+  }, 1000);
+}
+
+function updateJobUI(job) {
+  $("renderStatusText").textContent = `Status: ${job.status}`;
+  const pct = Math.round((job.progress || 0) * 100);
+  $("renderPercent").textContent = `${pct}%`;
+  $("renderProgressBar").style.width = `${pct}%`;
+
+  if (job.status === "COMPLETED" && job.output_path) {
+    $("renderProgressBar").style.background = "var(--success)";
+    switchVideo("primary");
+  } else if (job.status === "FAILED") {
+    $("renderProgressBar").style.background = "var(--danger)";
+    $("renderStatusText").textContent = `Failed: ${job.error_message || 'Unknown error'}`;
+  }
+}
+
+// Sync TOML button
+$("btnSyncToml").onclick = async () => {
+  const tomlPath = prompt("Enter timeline TOML path to import/sync:", "timelines/timeline.example.toml");
+  if (!tomlPath) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/timeline/import`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ toml_path: tomlPath })
+    });
+    const data = await res.json();
+    alert(`Synced ${data.title} (${data.scenes_count} scenes) into SQLite!`);
+    loadProjects();
+  } catch (err) {
+    alert("Sync failed: " + err);
+  }
 };
+
+// Auto Add Video Scene
+$("btnExecuteAutoAppend").onclick = async () => {
+  const videoPath = $("autoVideoPath").value.trim();
+  if (!videoPath) { alert("Please select or enter a video file path"); return; }
+  const btn = $("btnExecuteAutoAppend");
+  btn.disabled = true;
+  btn.textContent = "Processing (Extraction + Bridge)...";
+
+  try {
+    const payload = {
+      video_path: videoPath,
+      scene_name: $("autoSceneName").value.trim() || undefined,
+      video_scale: parseFloat($("autoVideoScale").value) || 0.75,
+      prompt: $("autoBridgePrompt").value.trim() || undefined,
+      hold_duration: parseFloat($("autoHoldDur").value) || 0.0,
+      seam_feather_width: parseInt($("autoSeamFeather").value) || 16,
+    };
+
+    const res = await fetch(`${API_BASE}/api/projects/${currentProjectId}/add-video-scene`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    alert("Scene and bridge synthesized and appended successfully!");
+    loadProjectDetails(currentProjectId);
+  } catch (err) {
+    alert("Auto-append failed: " + err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Execute End-to-End Scene Append";
+  }
+};
+
+// Generate Bridge
+$("btnExecuteBridgeGen").onclick = async () => {
+  const fromSheet = $("bridgeFromSheet").value.trim();
+  const toSheet = $("bridgeToSheet").value.trim();
+  if (!fromSheet || !toSheet) { alert("Please provide from and to sheet paths"); return; }
+
+  const btn = $("btnExecuteBridgeGen");
+  btn.disabled = true;
+  btn.textContent = "Generating Bridge with OpenAI...";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/pipeline/generate-bridge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from_sheet: fromSheet,
+        to_sheet: toSheet,
+        prompt: $("bridgePrompt").value.trim() || undefined
+      })
+    });
+    const data = await res.json();
+    alert(`Bridge generated at: ${data.bridge_path}`);
+  } catch (err) {
+    alert("Bridge gen failed: " + err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Generate Transition Bridge Image";
+  }
+};
+
+// Music Station
+$("btnExecuteMusicStation").onclick = async () => {
+  const videoPath = $("musicVideoPath").value.trim();
+  const urls = $("musicUrls").value.split("\n").map(u => u.trim()).filter(Boolean);
+  if (!videoPath || urls.length === 0) { alert("Please provide video path and at least one YouTube URL"); return; }
+
+  const btn = $("btnExecuteMusicStation");
+  btn.disabled = true;
+  btn.textContent = "Downloading Audio & Muxing Looped MP4...";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/pipeline/music-station`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ video_path: videoPath, youtube_urls: urls })
+    });
+    const data = await res.json();
+    alert(`Music station ready at: ${data.music_station_path}`);
+    switchVideo("music_station");
+  } catch (err) {
+    alert("Music station failed: " + err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Build Music Station MP4";
+  }
+};
+
+// Manual Add Scene Modal
+$("btnAddSceneManual").onclick = async () => {
+  const name = prompt("Scene Name:", "scene_new");
+  if (!name) return;
+  const sheet = prompt("Path to sprite/video:", "outputs/scene_a/sprite_bg.png");
+  if (!sheet) return;
+
+  await fetch(`${API_BASE}/api/projects/${currentProjectId}/scenes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      project_id: currentProjectId,
+      name: name,
+      sheet_path: sheet,
+      order_idx: 99
+    })
+  });
+  loadProjectDetails(currentProjectId);
+};
+
+// Delete Scene
+window.deleteScene = async id => {
+  if (!confirm("Delete this scene from the timeline?")) return;
+  await fetch(`${API_BASE}/api/scenes/${id}`, { method: "DELETE" });
+  loadProjectDetails(currentProjectId);
+};
+
+// Save Project Settings
+$("btnSaveProject").onclick = async () => {
+  const resParts = $("projRes").value.split("x");
+  await fetch(`${API_BASE}/api/projects/${currentProjectId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: $("projTitle").value,
+      canvas_w: parseInt(resParts[0]),
+      canvas_h: parseInt(resParts[1]),
+      fps: parseInt($("projFps").value),
+      char_sheet: $("projCharSheet").value,
+      stride_pixels: parseFloat($("projStride").value),
+      floor_y: parseInt($("projFloorY").value)
+    })
+  });
+  alert("Project configuration saved!");
+};
+
+$("projectSelect").onchange = e => {
+  currentProjectId = e.target.value;
+  loadProjectDetails(currentProjectId);
+};
+
+$("btnQuickAppendModal").onclick = () => {
+  document.querySelector('.tab[data-tab="auto-scene"]').click();
+};
+
+// Tab switching
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    const target = tab.dataset.tab;
+    $("tabCinemaContent").style.display = target === "cinema" ? "flex" : "none";
+    $("tabStoryboardContent").style.display = target === "storyboard" ? "flex" : "none";
+    $("tabAutoSceneContent").style.display = target === "auto-scene" ? "flex" : "none";
+    $("tabBridgeGenContent").style.display = target === "bridge-gen" ? "flex" : "none";
+    $("tabMusicStationContent").style.display = target === "music-station" ? "flex" : "none";
+    $("tabAssetsContent").style.display = target === "assets" ? "flex" : "none";
+  };
+});
+
+loadProjects();
 </script>
 </body>
 </html>

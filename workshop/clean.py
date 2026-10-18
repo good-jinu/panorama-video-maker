@@ -4,7 +4,7 @@
 3. Zero RGB: clears color channels of transparent pixels to prevent color bleed during scaling or compositing.
 
 Usage:
-    uv run python -m workshop.clean outputs/couple-dinner-time/sprite_scaled.png [--bg-color "#2c4d6b"]
+    uv run python -m workshop.clean path/to/sprite_sheet.png [--bg-color "#2c4d6b"]
 """
 import argparse
 import shutil
@@ -17,8 +17,8 @@ from PIL import Image
 
 from workshop.utils import load_sprite_sheet, parse_hex_color, save_sprite_sheet
 
-# Bounding box (x0, y0, x1, y1), inclusive, of the jeans-crease shadow in the couple-dinner
-# scene. Gap components lying entirely inside it are kept (they're real shadow, not background).
+# Default bounding box (x0, y0, x1, y1), inclusive, for protected shadow regions.
+# Gap components lying entirely inside it are kept (they are real foreground shadows, not background).
 JEANS_BOX = (370, 210, 460, 280)
 
 

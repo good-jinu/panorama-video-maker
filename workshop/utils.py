@@ -11,7 +11,6 @@ import numpy as np
 from PIL import Image
 
 GRADIENT_PRESETS: dict[str, list[str]] = {
-    "dinner": ["#142230", "#355a7d"],
     "scene": ["#142230", "#355a7d"],
     "studio": ["#2d3748", "#1a202c"],
     "twilight": ["#0f172a", "#1e3a5f", "#334155"],

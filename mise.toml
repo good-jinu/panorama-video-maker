@@ -1,5 +1,4 @@
 # Toolchain + tasks. `mise install && mise run setup`, list everything with `mise tasks`.
-# Declarative jobs live in jobs/*.toml: `mise run job` lists them, `mise run job <name>` runs one.
 
 [tools]
 uv = "latest"
@@ -14,6 +13,14 @@ run = "uv sync"
 [tasks.test]
 description = "Run the automated test suite"
 run = "uv run pytest -q"
+
+[tasks.server]
+description = "Run FastAPI REST server with SQLite and static web preview (http://localhost:8000/docs, /web)"
+run = "uv run uvicorn workshop.server.app:app --host 0.0.0.0 --port 8000 --reload"
+
+[tasks.mcp]
+description = "Run Model Context Protocol (MCP) server for AI agent tool calling (stdio)"
+run = "uv run python -m workshop.mcp_server"
 
 [tasks.job]
 description = "Run declarative job(s) from jobs/*.toml. e.g. mise run job <name> (--dry-run = validate)"

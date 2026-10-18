@@ -1,20 +1,22 @@
-# Video & Sprite Compositing Framework
+# AI Video Studio & Compositing Platform
 
-A modular Python framework and engine for video frame extraction, ONNX-based background removal, sprite sheet recutting, AI-assisted panoramic transition bridge synthesis, and continuous camera-tracking long-form video compositing.
+A full-stack, modular AI video production platform and compositing engine featuring **FastAPI**, an **SQLite RDB** storage layer for multi-scene projects and asset lineage, an **MCP (Model Context Protocol)** server for autonomous AI agent tool-calling, and deep-learning media processing pipelines (ONNX background matting, panoramic transition bridge synthesis, DP seam blending, and ffmpeg pipe-streaming).
 
 ```
-inputs/
-  videos/      raw source video footage (.mp4) [gitignored]
-  bridges/     panoramic bridge / background extensions (.png) [gitignored]
-jobs/          declarative job configurations (*.toml, *.example.toml)
-timelines/     multi-scene continuous timeline configurations (*.toml, *.example.toml)
-outputs/       rendered media results (fully reproducible via jobs) [gitignored]
-tests/         test suite (unit, integration, visual regression snapshots)
-workshop/      core engine modules:
-                 bgremove, character, clean, comparison, composite,
-                 imagen, jobs, long_composite, music_station,
-                 recut, scenes, sprite, timeline, utils
-web/           local sprite & timeline preview player
+data/             SQLite database storage (studio.db) [gitignored]
+inputs/           raw source video footage (.mp4) and bridges (.png) [gitignored]
+jobs/             declarative job configurations (*.toml, *.example.toml)
+timelines/        multi-scene continuous timeline configurations (*.toml, *.example.toml)
+outputs/          rendered media results and project assets [gitignored]
+tests/            test suite (API, MCP, engine unit/integration, visual regression)
+web/              local sprite & timeline preview player (served at /web)
+workshop/         core platform modules:
+  ├── db/         SQLModel schemas (Project, Scene, Asset, RenderJob) & SQLite session
+  ├── server/     FastAPI REST API server with static web player mount
+  ├── services/   timeline configuration builders & asynchronous render runner
+  ├── mcp_server.py  Model Context Protocol (MCP) server for AI agent tool calling
+  └── [engine]    bgremove, character, clean, composite, imagen, jobs, long_composite,
+                  music_station, recut, scenes, sprite, timeline, utils
 ```
 
 ---
@@ -22,88 +24,61 @@ web/           local sprite & timeline preview player
 ## Quick Start (mise)
 
 ```bash
-# Install toolchain and dependencies
+# 1. Install toolchain and dependencies
 mise install && mise run setup
 
-# List available declarative jobs
-mise run job
-
-# Run a declarative job (e.g. tracking.example)
-mise run job tracking.example --dry-run
-
-# Run automated tests
+# 2. Run automated test suite (API, MCP, and engine)
 mise run test
 
-# Launch local preview web player
-mise run web     # http://localhost:8765/web/index.html
+# 3. Launch the FastAPI Web Server (Interactive Swagger docs at http://localhost:8000/docs)
+mise run server
+
+# 4. Launch the Model Context Protocol (MCP) server for AI agents
+mise run mcp
 ```
 
 ---
 
-## Core Capabilities & Modules
+## Platform Architecture & Features
 
-### 1. Sprite Extraction & Background Removal (`workshop.sprite`, `workshop.bgremove`)
-Extracts frames from video clips into compact RGBA sprite sheets using deep learning matting models:
-- **ONNX Background Matting**: Supports RMBG 2.0 and BiRefNet with automatic category routing.
-- **Cropping & Normalization**: Automatically trims transparent borders and normalizes frame bounds.
+### 1. Web REST API & SQLite Database Layer (`workshop.server`, `workshop.db`)
+Built with **FastAPI** and **SQLModel** (SQLAlchemy 2.0 + Pydantic v2):
+- **Projects**: Manage multi-scene video timeline specifications (resolution, framerate, background color/gradients, character actor parameters).
+- **Scenes**: Sequential timeline scenes with scale, vertical alignment, overlap transitions, feathering, and camera hold durations.
+- **Asset Lineage & Provenance**: Track generated media assets (video, image, sprite, audio) with model names (`gpt-image-2.5`, `gemini-omni-1.1-flash`), generation prompts, version numbers, and parent project references.
+- **Asynchronous Render Jobs**: State machine (`QUEUED` ➔ `PROCESSING` ➔ `COMPLETED` / `FAILED`) executing composite rendering in background worker threads without blocking API requests.
 
-```bash
-# Extract transparent sprite sheet with BiRefNet
-uv run python -m workshop.sprite inputs/videos/character.mp4 --crop --model birefnet
+Interactive documentation is accessible at `http://localhost:8000/docs`.
 
-# Extract background with camera motion compensation
-uv run python -m workshop.sprite inputs/videos/scene.mp4 --zoom-start 1.37 --zoom-step 0.0095
+### 2. Model Context Protocol (MCP) Server (`workshop.mcp_server`)
+Equips AI agents (Claude Desktop, Cursor, Antigravity, etc.) with standardized tool-calling capabilities to orchestrate the video production pipeline:
+- `create_project(title, width, height, fps, ...)`: Initialize a new video project.
+- `add_scene(project_id, sheet_path, order_idx, ...)`: Insert a scene clip into the timeline.
+- `set_character_actor(project_id, char_sheet, stride_pixels, ...)`: Configure character tracking.
+- `record_asset(project_id, asset_type, file_path, model_name, prompt)`: Log generative provenance.
+- `render_project_video(project_id)`: Trigger background composite rendering.
+- `check_render_status(job_id)`: Monitor progress (0~100%) and retrieve the final video path.
+
+Configure with Claude Desktop (`claude_desktop_config.json`) or Cursor MCP settings:
+```json
+{
+  "mcpServers": {
+    "video-studio": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "workshop.mcp_server"],
+      "cwd": "/path/to/video-compositing-studio"
+    }
+  }
+}
 ```
 
-### 2. Recutting & Frame Repacking (`workshop.recut`, `workshop.clean`)
-Slices arbitrary frame ranges and repacks them into regular grids for clean animation walk/action cycles:
-
-```bash
-# Slice specific frames into a 4-column sprite sheet
-uv run python -m workshop.recut outputs/character/sprite.png --frames 1-16 --columns 4 -o outputs/character/sprite_walk.png
-
-# Alpha thresholding and edge cleaning
-uv run python -m workshop.clean outputs/character/sprite.png -o outputs/character/sprite_cleaned.png
-```
-
-### 3. AI Scene Extension & Transition Bridges (`workshop.imagen`)
-Synthesizes panoramic extensions and seamless bridge images between scenes using multimodal generative models:
-- OpenAI Image Inpainting/Outpainting (`gpt-image-2.5-sunburst-2026-09-08`)
-- Gemini Omni Video Generation (`gemini-omni-1.1-flash`)
-
-```bash
-# Generate panoramic transition bridge between two scene sheets
-uv run python -m workshop.imagen \
-  --from-sheet outputs/scene1/sprite_bg.png \
-  --to-sheet outputs/scene2/sprite_bg.png \
-  --from-scale 0.70 --to-scale 0.75 \
-  -o inputs/bridges/scene1-to-scene2-bridge.png
-```
-
-### 4. Dynamic Seam Stitching & Blending (`workshop.scenes`)
-Aligns and blends static extended backgrounds with animated video loops using dynamic programming minimum-error seam boundaries with motion penalties, preventing visual jitter.
-
-### 5. Multi-Scene Timeline Solving & Streaming Compositor (`workshop.timeline`, `workshop.long_composite`)
-- **1D World Coordinate Solver**: Solves scene entry/exit, overlap feathering, and piecewise-linear camera holds.
-- **Stride-Locking**: Locks camera movement velocity to the character actor's walk pace to prevent foot/ground sliding.
-- **Contact Ground Shadow**: Real-time perspective-correct contact shadow generation.
-- **Pipe-Streaming Video Render**: Directly streams synthesized RGB frames to `ffmpeg` via standard pipe, keeping memory footprint constant regardless of video length.
-
-```bash
-# Render timeline video from a TOML configuration
-uv run python -m workshop.long_composite timelines/timeline.example.toml -o outputs/story/animation.mp4
-```
-
-### 6. Declarative Job Runner (`workshop.jobs`)
-Define reproducible multi-step pipelines in simple TOML files in `jobs/`:
-
-```bash
-# List discovered jobs
-uv run python -m workshop.jobs
-
-# Validate a job without executing
-uv run python -m workshop.jobs tracking.example --dry-run
-```
+### 3. Core Media Engine (`workshop`)
+- **Sprite Extraction & Matting (`workshop.sprite`, `workshop.bgremove`)**: Deep learning background matting with ONNX Runtime (RMBG 2.0, BiRefNet) and transparent border normalization.
+- **Recutting & Grid Repacking (`workshop.recut`, `workshop.clean`)**: Repack arbitrary frame sequences into neat walk/action cycle sprite grids.
+- **AI Scene Inpainting & Bridge Synthesis (`workshop.imagen`)**: Panoramic horizontal scene outpainting and keyframe video synthesis via OpenAI and Gemini Omni.
+- **Dynamic Seam Blending (`workshop.scenes`)**: Dynamic programming minimum-error boundary seam stitching with motion-preservation penalties.
+- **1D World Timeline Solver & Pipe-Streaming Renderer (`workshop.timeline`, `workshop.long_composite`)**: Stride-locking (camera velocity matched to actor paw/foot pace), contact ground drop shadows, and constant-memory ffmpeg pipe streaming.
+- **Declarative Job Runner (`workshop.jobs`)**: TOML-based declarative reproducible pipelines (`jobs/*.toml`).
 
 ---
 
@@ -112,9 +87,10 @@ uv run python -m workshop.jobs tracking.example --dry-run
 ```bash
 mise run test
 ```
-The test suite covers:
-- Sprite slicing, metadata loading, and grid packing
-- Minimum-error DP seam finding and image feathering
-- Timeline world-coordinate solving and camera positioning
-- Pipe-streaming `AnimationWriter` (MP4/GIF)
-- Declarative job validation and execution
+The test suite includes 72 automated unit and integration tests covering:
+- FastAPI REST endpoints and SQLite database transactions (`test_api.py`)
+- MCP tool-calling workflows and schema serialization (`test_mcp.py`)
+- Sprite slicing, metadata loading, and grid packing (`test_recut.py`, `test_clean.py`)
+- Minimum-error DP seam finding and image feathering (`test_timeline.py`)
+- Pipe-streaming `AnimationWriter` (`test_writer.py`)
+- Declarative job validation and execution (`test_jobs.py`)

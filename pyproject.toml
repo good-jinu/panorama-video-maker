@@ -1,14 +1,19 @@
 [project]
-name = "image-generating"
+name = "video-compositing-studio"
 version = "0.1.0"
-description = "Personal image workshop: sprite export, background removal, comparisons"
+description = "Modular AI video production platform: video frame extraction, sprite matting, panoramic bridge outpainting, and multi-scene continuous long-form compositing."
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi>=0.143.5",
+    "httpx>=0.28.1",
     "huggingface-hub>=0.25",
+    "mcp>=2.3.0",
     "numpy>=1.26",
     "onnxruntime>=1.20",
     "opencv-python-headless>=4.10",
     "pillow>=10.4",
+    "sqlmodel>=0.0.48",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [dependency-groups]

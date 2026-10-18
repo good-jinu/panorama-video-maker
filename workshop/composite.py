@@ -301,7 +301,7 @@ def main():
     ap.add_argument("--floor-y", type=int, default=352, help="Floor baseline Y coordinate (default: 352)")
     ap.add_argument("--fps", type=int, default=24, help="Framerate (default: 24)")
     ap.add_argument("--bg-color", type=str, default="#ffffff", help="Background hex color (default: #ffffff)")
-    ap.add_argument("--bg-gradient", nargs="+", help="Canvas gradation background colors (e.g. '#142230' '#355a7d' or preset: dinner, twilight, sunset, studio, warm)")
+    ap.add_argument("--bg-gradient", nargs="+", help="Canvas gradation background colors (e.g. '#142230' '#355a7d' or preset: scene, twilight, sunset, studio, warm)")
     ap.add_argument("--bg-gradient-direction", choices=["vertical", "horizontal", "radial", "diagonal"], default="vertical", help="Gradation direction (default: vertical)")
     ap.add_argument("--scene-gradient", nargs="?", const="#203a55", default=None, help="Add radial fade gradient behind scene (navy at center, fades out further from center; default center: #203a55)")
     ap.add_argument("--scene-gradient-scale", type=float, default=2.0, help="Scale multiplier for scene radial gradient (default: 2.0, ~2x bigger)")
