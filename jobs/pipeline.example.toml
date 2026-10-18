@@ -1,0 +1,21 @@
+# Example multi-step sprite extraction and recutting pipeline job
+# Copy to `jobs/my-pipeline.toml` and customize.
+description = "Extract frames from video, remove background, clean, and recut sprite grid"
+
+[[steps]]
+run = "sprite"
+video_path = "inputs/videos/raw_character.mp4"
+crop = true
+keep_frames = true
+
+[[steps]]
+run = "clean"
+input_path = "outputs/raw_character/sprite.png"
+output_path = "outputs/raw_character/sprite_cleaned.png"
+
+[[steps]]
+run = "recut"
+sheet_path = "outputs/raw_character/sprite_cleaned.png"
+output_path = "outputs/character/sprite_walk.png"
+frames_range = "1-16"
+columns = 4

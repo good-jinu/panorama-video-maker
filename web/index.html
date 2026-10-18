@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite Player</title>
+<style>
+  :root { --bg:#111; --panel:#1b1b1b; --fg:#eee; --muted:#999; --accent:#7cc4ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px system-ui, sans-serif;
+         display:flex; flex-direction:column; align-items:center; gap:16px; padding:16px; }
+  h1 { font-size:16px; font-weight:600; margin:0; }
+  #stage { border-radius:8px; max-width:100%; overflow:hidden; line-height:0; }
+  #stage.checker { background:conic-gradient(#ccc 25%,#fff 0 50%,#ccc 0 75%,#fff 0) 0 0/24px 24px; }
+  #sprite { image-rendering:auto; }
+  .panel { background:var(--panel); border-radius:8px; padding:12px 16px; display:grid;
+           grid-template-columns:auto 1fr auto; gap:10px 12px; align-items:center; width:min(640px,100%); }
+  .panel label { color:var(--muted); }
+  .panel output { min-width:4ch; text-align:right; font-variant-numeric:tabular-nums; }
+  input[type=range] { width:100%; accent-color:var(--accent); }
+  input[type=number] { background:#2a2a2a; color:var(--fg); border:1px solid #3a3a3a; border-radius:6px; padding:6px 8px; font:inherit; width:100%; }
+  .row { grid-column:1/-1; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button, select { background:#2a2a2a; color:var(--fg); border:1px solid #3a3a3a; border-radius:6px; padding:6px 12px; font:inherit; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  #sheetWrap { width:min(1000px,100%); }
+  #sheetWrap summary { cursor:pointer; color:var(--muted); margin-bottom:8px; }
+  #sheet { width:100%; border-radius:8px; background:conic-gradient(#ccc 25%,#fff 0 50%,#ccc 0 75%,#fff 0) 0 0/24px 24px; }
+</style>
+</head>
+<body>
+<h1>Munchkin walking: sprite player</h1>
+<div id="stage" class="checker"><div id="sprite"></div></div>
+
+<div class="panel">
+  <div class="row">
+    <button id="play">Pause</button>
+    <button id="prev">&larr;</button>
+    <button id="next">&rarr;</button>
+    <select id="bg">
+      <option value="checker">Checkerboard</option>
+      <option value="#ffffff">White</option>
+      <option value="#222222">Dark</option>
+      <option value="#3fa34d">Green</option>
+      <option value="linear-gradient(to bottom, #142230, #355a7d)">Gradation (Blue Stage)</option>
+      <option value="radial-gradient(circle at 50% 45%, #3d648c, #111c26)">Gradation (Spotlight)</option>
+      <option value="linear-gradient(to bottom, #2e1065, #7c3aed, #f59e0b)">Gradation (Sunset)</option>
+      <option value="linear-gradient(to bottom, #2d3748, #1a202c)">Gradation (Studio Dark)</option>
+    </select>
+  </div>
+  <label for="frame">Frame</label><input id="frame" type="range" min="0" value="0"><output id="frameOut">0</output>
+  <label for="fps">FPS</label><input id="fps" type="range" min="1" max="30" value="4"><output id="fpsOut">4</output>
+  <label for="scale">Scale</label><input id="scale" type="range" min="0.25" max="1.5" step="0.05" value="1"><output id="scaleOut">1.0×</output>
+</div>
+
+<div class="panel">
+  <label for="cols">Columns</label><input id="cols" type="number" min="1" value="4"><span></span>
+  <label for="rows">Rows</label><input id="rows" type="number" min="1" value="7"><span></span>
+  <label for="count">Frames</label><input id="count" type="number" min="1" value="28"><span></span>
+  <div class="row"><label for="file">Sprite image</label><input id="file" type="file" accept="image/*"></div>
+</div>
+
+<details id="sheetWrap">
+  <summary>Show full sprite sheet</summary>
+  <img id="sheet" alt="sprite sheet">
+</details>
+
+<script>
+// Animates a sprite sheet from the image alone. Frame size = image size / grid.
+// Defaults can be overridden: ?src=...&cols=4&rows=7&frames=28&fps=4
+const q = new URLSearchParams(location.search);
+const SRC = q.get("src") || "../outputs/munchkin-walking/sprite_4x7.png";
+const $ = id => document.getElementById(id);
+const el = $("sprite"), stage = $("stage");
+let img = null, frame = 0, playing = true, last = 0, acc = 0;
+const grid = () => ({ cols: Math.max(1, +$("cols").value | 0), rows: Math.max(1, +$("rows").value | 0),
+                      count: Math.max(1, +$("count").value | 0) });
+
+function render() {
+  if (!img) return;
+  const { cols, rows, count } = grid();
+  const fw = img.naturalWidth / cols, fh = img.naturalHeight / rows;
+  const s = +$("scale").value; $("scaleOut").textContent = s.toFixed(2) + "×";
+  frame = ((frame % count) + count) % count;
+  const c = frame % cols, r = Math.floor(frame / cols);
+  el.style.width = fw * s + "px"; el.style.height = fh * s + "px";
+  el.style.backgroundSize = `${img.naturalWidth * s}px ${img.naturalHeight * s}px`;
+  el.style.backgroundPosition = `${-c * fw * s}px ${-r * fh * s}px`;
+  $("frame").max = count - 1; $("frame").value = frame; $("frameOut").textContent = frame;
+}
+const show = i => { frame = i; render(); };
+const stop = () => { playing = false; $("play").textContent = "Play"; };
+
+function load(url) {
+  const im = new Image();
+  im.onload = () => {
+    img = im;
+    el.style.backgroundImage = `url("${url}")`; el.style.backgroundRepeat = "no-repeat";
+    $("sheet").src = url; frame = 0; render();
+  };
+  im.src = url;
+}
+
+function tick(t) {
+  if (playing && img) {
+    acc += t - last;
+    const step = 1000 / +$("fps").value;
+    while (acc >= step) { acc -= step; show(frame + 1); }
+  }
+  last = t; requestAnimationFrame(tick);
+}
+
+$("cols").value = q.get("cols") || 4; $("rows").value = q.get("rows") || 7;
+$("count").value = q.get("frames") || 28;
+$("fps").value = q.get("fps") || 4; $("fpsOut").textContent = $("fps").value;
+load(SRC); requestAnimationFrame(t => { last = t; tick(t); });
+
+$("play").onclick = () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play"; };
+$("prev").onclick = () => { stop(); show(frame - 1); };
+$("next").onclick = () => { stop(); show(frame + 1); };
+$("frame").oninput = e => { stop(); show(+e.target.value); };
+$("fps").oninput = e => { $("fpsOut").textContent = e.target.value; };
+$("scale").oninput = render;
+for (const id of ["cols", "rows", "count"]) $(id).oninput = render;
+$("file").onchange = e => { const f = e.target.files[0]; if (f) load(URL.createObjectURL(f)); };
+$("bg").onchange = e => {
+  const v = e.target.value;
+  stage.classList.toggle("checker", v === "checker");
+  stage.style.background = v === "checker" ? "" : v;
+};
+</script>
+</body>
+</html>

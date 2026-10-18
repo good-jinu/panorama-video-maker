@@ -1,0 +1,36 @@
+# Toolchain + tasks. `mise install && mise run setup`, list everything with `mise tasks`.
+# Declarative jobs live in jobs/*.toml: `mise run job` lists them, `mise run job <name>` runs one.
+
+[tools]
+uv = "latest"
+ffmpeg = "8"
+python = "3.13"
+"github:ImageOptim/gifski" = "1.34.0"
+
+[tasks.setup]
+description = "Install Python dependencies into .venv"
+run = "uv sync"
+
+[tasks.test]
+description = "Run the automated test suite"
+run = "uv run pytest -q"
+
+[tasks.job]
+description = "Run declarative job(s) from jobs/*.toml. e.g. mise run job <name> (--dry-run = validate)"
+run = "uv run python -m workshop.jobs"
+
+[tasks.sprite]
+description = "Video -> sprite sheet CLI tool. e.g. mise run sprite <video.mp4> --crop"
+run = "uv run python -m workshop.sprite"
+
+[tasks.composite]
+description = "Composite 2-scene tracking shot: mise run composite"
+run = "uv run python -m workshop.composite"
+
+[tasks.timeline]
+description = "Render long-form multi-scene timeline video: mise run timeline <timelines/*.toml>"
+run = "uv run python -m workshop.long_composite"
+
+[tasks.web]
+description = "Serve local preview player at http://localhost:8765/web/index.html"
+run = "python3 -m http.server 8765"

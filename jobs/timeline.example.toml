@@ -1,0 +1,7 @@
+# Example long-form timeline video composite job
+# Copy to `jobs/my-timeline.toml` and customize.
+description = "Render long-form multi-scene continuous scrolling timeline video"
+run = "timeline"
+timeline_path = "timelines/timeline.example.toml"
+output = "outputs/story/animation.mp4"
+make_gif = false

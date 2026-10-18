@@ -1,0 +1,15 @@
+# Example tracking composite job
+# Copy to `jobs/my-tracking.toml` and customize.
+description = "Tracking shot: camera tracks character moving across panoramic background scenes"
+run = "composite"
+mode = "tracking"
+scenes = [
+    "outputs/scenes/scene_1.png",
+    "outputs/scenes/scene_2.png",
+]
+char = "outputs/character/sprite_walk.png"
+output = "outputs/composite/animation_tracking.mp4"
+scale = 0.45
+scene_scale = [0.70, 0.75]
+scene_y = [0, 0]
+scene_gap = 2.0

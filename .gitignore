@@ -1,0 +1,27 @@
+# Environment & Tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+# Secrets & Config
+.env
+.env.*
+.claude/
+.agents/
+
+# Media I/O (raw footage, sprites, renders)
+inputs/
+outputs/
+*.mp4
+*.gif
+*.aac
+*.m4a
+
+# User / Theme-specific jobs and timelines (keep example templates tracked)
+jobs/*.toml
+!jobs/*.example.toml
+
+timelines/*.toml
+!timelines/*.example.toml

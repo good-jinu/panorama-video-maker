@@ -1,0 +1,20 @@
+[project]
+name = "image-generating"
+version = "0.1.0"
+description = "Personal image workshop: sprite export, background removal, comparisons"
+requires-python = ">=3.13"
+dependencies = [
+    "huggingface-hub>=0.25",
+    "numpy>=1.26",
+    "onnxruntime>=1.20",
+    "opencv-python-headless>=4.10",
+    "pillow>=10.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

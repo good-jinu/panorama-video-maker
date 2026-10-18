@@ -1,0 +1,48 @@
+# Example Timeline Configuration for Long-Form Multi-Scene Video Compositing
+# Copy this file to `timelines/my-timeline.toml` and customize.
+
+[camera]
+width = 640
+height = 360
+fps = 24
+bg_color = "#f4f5f7"
+# bg_gradient = ["#142230", "#355a7d"]  # Optional background gradation
+# bg_gradient_direction = "vertical"     # vertical, horizontal, radial, diagonal
+start_on_screen = true
+hold_last_scene = true
+
+[character]
+sheet = "outputs/character/sprite_walk.png"
+# full_sheet = "outputs/character/sprite_full.png"
+# action_loop_step = 12       # Optional action/pause step interval during movement
+scale = 0.45
+frames = "all"
+floor_y = 352
+shadow = true
+shadow_opacity = 0.38
+stride_pixels = 165.8         # Stride-locking: camera speed synchronizes with character pace
+
+# Story Scenes (composited & streamed sequentially along world timeline)
+[[scenes]]
+id = "scene-intro"
+sheet = "outputs/scene1/sprite_bg.png"
+# left_bg = "inputs/bridges/scene1_left.png"
+# left_bg_offset = 760
+# video_scale = 0.70
+video_y = 0
+y = 0
+gap_after = 0.0
+pingpong = true
+
+[[scenes]]
+id = "scene-walk"
+sheet = "outputs/scene2/sprite_bg.png"
+# left_bg = "inputs/bridges/scene1_to_scene2_bridge.png"
+# left_bg_offset = 580
+# video_scale = 0.75
+video_y = 0
+overlap_prev = 180
+left_feather = [80, 60]
+y = 0
+gap_after = 0.0
+pingpong = true
