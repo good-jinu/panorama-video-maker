@@ -1,4 +1,4 @@
-# Video Compositing Studio Platform
+# Panorama Video Maker
 
 A full-stack, modular AI video production platform and compositing engine featuring **FastAPI**, an **SQLite RDB** storage layer for multi-scene projects and asset lineage, an **MCP (Model Context Protocol)** server for autonomous AI agent tool-calling, and deep-learning media processing pipelines (ONNX background matting, panoramic transition bridge synthesis, DP seam blending, and ffmpeg pipe-streaming).
 
@@ -120,10 +120,10 @@ Add to your agent configuration (e.g. `claude_desktop_config.json` or Cursor MCP
 ```json
 {
   "mcpServers": {
-    "video-studio": {
+    "panorama-video-maker": {
       "command": "uv",
       "args": ["run", "python", "-m", "workshop.mcp_server"],
-      "cwd": "/path/to/video-compositing-studio"
+      "cwd": "/path/to/panorama-video-maker"
     }
   }
 }

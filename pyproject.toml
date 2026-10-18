@@ -1,5 +1,5 @@
 [project]
-name = "video-compositing-studio"
+name = "panorama-video-maker"
 version = "0.1.0"
 description = "Modular AI video production platform: video frame extraction, sprite matting, panoramic bridge outpainting, and multi-scene continuous long-form compositing."
 requires-python = ">=3.13"
