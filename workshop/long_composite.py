@@ -1,7 +1,6 @@
 """Long-form multi-scene streaming compositor with parallax, lazy caching, and ground shadows."""
 import argparse
 from pathlib import Path
-from typing import Optional, Union
 
 from PIL import Image
 
@@ -15,7 +14,7 @@ from workshop.utils import AnimationWriter
 class StoryStage:
     """High-level stage manager that composites scenery, character, and shadows for each frame."""
 
-    def __init__(self, config: TimelineConfig, root_dir: Optional[Path] = None):
+    def __init__(self, config: TimelineConfig, root_dir: Path | None = None):
         self.config = config
         self.root = root_dir or Path.cwd()
         self.timeline = StoryTimeline(config, root_dir=self.root)
@@ -87,11 +86,11 @@ class StoryStage:
 
 def render_long_animation(
     config: TimelineConfig,
-    output_path: Union[str, Path],
-    root_dir: Optional[Path] = None,
+    output_path: str | Path,
+    root_dir: Path | None = None,
     make_gif: bool = False,
-    gif_encoder: Optional[str] = None,
-) -> tuple[Path, Optional[Path]]:
+    gif_encoder: str | None = None,
+) -> tuple[Path, Path | None]:
     """Stream-render a long-form tracking animation across a multi-scene timeline."""
     stage = StoryStage(config, root_dir=root_dir)
     output = Path(output_path)
@@ -120,11 +119,11 @@ def render_long_animation(
 
 
 def render_timeline_job(
-    timeline_path: Union[str, Path],
-    output: Optional[Union[str, Path]] = None,
+    timeline_path: str | Path,
+    output: str | Path | None = None,
     make_gif: bool = False,
-    gif_encoder: Optional[str] = None,
-) -> tuple[Path, Optional[Path]]:
+    gif_encoder: str | None = None,
+) -> tuple[Path, Path | None]:
     """Entry point for the job runner (jobs/*.toml)."""
     p = Path(timeline_path)
     root = Path.cwd()

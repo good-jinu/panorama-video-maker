@@ -14,8 +14,8 @@ Execution providers (pick with $WORKSHOP_ORT_PROVIDERS, comma-separated):
 """
 import json
 import os
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 import numpy as np
 import onnxruntime as ort
@@ -40,7 +40,7 @@ _IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 _CACHE_DIR = Path.home() / ".cache" / "image-generating" / "coreml"
 
 
-def resolve_providers(spec: Optional[str | Sequence[str]] = None) -> list:
+def resolve_providers(spec: str | Sequence[str] | None = None) -> list:
     """Turn 'auto' / 'cpu' / 'coreml' / explicit ORT names into an ORT providers list."""
     if spec is None:
         spec = os.environ.get("WORKSHOP_ORT_PROVIDERS", "cpu")
@@ -125,7 +125,7 @@ class WithoutBGRemover(_Remover):
 
     name = "withoutbg"
 
-    def __init__(self, providers: Optional[list] = None):
+    def __init__(self, providers: list | None = None):
         providers = providers or resolve_providers()
         bundle = Path(snapshot_download(WITHOUTBG_REPO, allow_patterns=["*.onnx", "*.onnx.json"]))
         self.sidecar = json.loads((bundle / "withoutbg-open-weights.onnx.json").read_text())
@@ -169,7 +169,7 @@ class WithoutBGRemover(_Remover):
 class BiRefNetRemover(_Remover):
     """Single-pass BiRefNet-family model (BiRefNet, BiRefNet-lite/portrait, RMBG-2.0)."""
 
-    def __init__(self, model: str = "birefnet", providers: Optional[list] = None):
+    def __init__(self, model: str = "birefnet", providers: list | None = None):
         if model not in BIREFNET_MODELS:
             raise ValueError(f"Unknown BiRefNet model '{model}' (expected one of {list(BIREFNET_MODELS)})")
         self.name = model
@@ -192,7 +192,7 @@ class BiRefNetRemover(_Remover):
         return matte.resize(image.size, Image.Resampling.BILINEAR), self.name
 
 
-def BackgroundRemover(model: Optional[str] = None, providers: Optional[str | Sequence[str]] = None):
+def BackgroundRemover(model: str | None = None, providers: str | Sequence[str] | None = None):
     """Factory: build the remover for `model` (default: $WORKSHOP_BG_MODEL or 'withoutbg')."""
     model = (model or os.environ.get("WORKSHOP_BG_MODEL") or DEFAULT_MODEL).lower()
     resolved = resolve_providers(providers)

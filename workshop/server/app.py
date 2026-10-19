@@ -1,16 +1,17 @@
 """FastAPI application providing REST APIs for video project editing and asset tracking."""
+import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from pydantic import BaseModel
-
+import workshop.services.pipeline_service as pipe_svc
+from workshop.config import ROOT_DIR, settings
 from workshop.db.database import get_session, init_db
 from workshop.db.models import (
     Asset,
@@ -28,24 +29,20 @@ from workshop.db.models import (
     SceneRead,
     SceneUpdate,
 )
-import json
-import logging
-import tomllib
-from workshop.db.database import get_engine
 from workshop.mcp_server import mcp
-import workshop.services.pipeline_service as pipe_svc
 from workshop.services.project_service import (
     get_project_with_relations,
     import_timeline_toml_to_project,
 )
 from workshop.services.render_service import run_render_job, start_render_job
 
-ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Ensure standard workspace directories exist
+    settings.ensure_directories()
     # Initialize SQLite database schema
     init_db()
     yield
@@ -71,8 +68,8 @@ app.add_middleware(
 app.mount("/mcp", mcp.sse_app())
 
 # Serve web player and rendered output media
-web_dir = ROOT_DIR / "web"
-outputs_dir = ROOT_DIR / "outputs"
+web_dir = settings.web_dir
+outputs_dir = settings.outputs_dir
 outputs_dir.mkdir(parents=True, exist_ok=True)
 
 if web_dir.exists():
@@ -80,9 +77,10 @@ if web_dir.exists():
 app.mount("/outputs", StaticFiles(directory=str(outputs_dir)), name="outputs")
 
 
+
 @app.get("/health", tags=["System"])
 def health_check():
-    return {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
+    return {"status": "ok", "time": datetime.now(UTC).isoformat()}
 
 
 # ==============================================================================
@@ -130,7 +128,7 @@ def update_project(
     for key, val in update_data.items():
         setattr(project, key, val)
 
-    project.updated_at = datetime.now(timezone.utc)
+    project.updated_at = datetime.now(UTC)
     session.add(project)
     session.commit()
     session.refresh(project)
@@ -271,7 +269,7 @@ def list_jobs(skip: int = 0, limit: int = 50, session: Session = Depends(get_ses
 
 class ExtractSpriteRequest(BaseModel):
     video_path: str
-    output_sheet: Optional[str] = None
+    output_sheet: str | None = None
     crop: bool = False
     keep_frames: bool = False
     keep_background: bool = False
@@ -303,8 +301,8 @@ class GenerateBridgeRequest(BaseModel):
     to_sheet: str
     from_scale: float = 0.6806
     to_scale: float = 0.75
-    output_path: Optional[str] = None
-    prompt: Optional[str] = None
+    output_path: str | None = None
+    prompt: str | None = None
     model: str = "gpt-image-2.5-sunburst-2026-09-08"
     size: str = "1536x512"
     quality: str = "high"
@@ -334,7 +332,7 @@ def api_generate_bridge(req: GenerateBridgeRequest):
 class GenerateAIVideoRequest(BaseModel):
     prompt: str
     output_path: str
-    image_paths: Optional[list[str]] = None
+    image_paths: list[str] | None = None
     model: str = "gemini-omni-1.1-flash"
 
 
@@ -355,11 +353,11 @@ def api_generate_ai_video(req: GenerateAIVideoRequest):
 
 class AddVideoSceneRequest(BaseModel):
     video_path: str
-    scene_name: Optional[str] = None
+    scene_name: str | None = None
     video_scale: float = 0.75
-    prompt: Optional[str] = None
+    prompt: str | None = None
     overwrite_bridge: bool = False
-    seam_feather_width: Optional[int] = None
+    seam_feather_width: int | None = None
     hold_duration: float = 0.0
     hide_actor_during_hold: bool = False
 
@@ -391,7 +389,7 @@ def api_add_video_scene(
 class MusicStationRequest(BaseModel):
     video_path: str
     youtube_urls: list[str]
-    output_path: Optional[str] = None
+    output_path: str | None = None
 
 
 @app.post("/api/pipeline/music-station", tags=["Pipeline"])
@@ -414,7 +412,7 @@ def api_music_station(req: MusicStationRequest):
 
 class TimelineImportRequest(BaseModel):
     toml_path: str = "timelines/timeline.example.toml"
-    title: Optional[str] = None
+    title: str | None = None
 
 
 @app.post("/api/timeline/import", tags=["Projects"])

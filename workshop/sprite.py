@@ -8,7 +8,6 @@ Usage:
 import argparse
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from PIL import Image
@@ -34,17 +33,17 @@ def zoom_canvas(img: Image.Image, factor: float) -> Image.Image:
 
 def generate_sprite_sheet(
     video_path: Path,
-    output_path: Optional[Path] = None,
+    output_path: Path | None = None,
     interval: float = 0.25,
-    columns: Optional[int] = None,
+    columns: int | None = None,
     crop: bool = False,
-    scale: Optional[float] = None,
-    clean_bg: Optional[str] = None,
+    scale: float | None = None,
+    clean_bg: str | None = None,
     keep_background: bool = False,
     keep_frames: bool = False,
-    zoom_start: Optional[float] = None,
+    zoom_start: float | None = None,
     zoom_step: float = 0.01,
-    model: Optional[str] = None,
+    model: str | None = None,
 ) -> Path:
     if keep_background and crop:
         raise ValueError("--crop requires transparent background; cannot be combined with --keep-background")

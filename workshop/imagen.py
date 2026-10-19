@@ -14,44 +14,42 @@ import os
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Optional, Union
 
 import cv2
 import numpy as np
 from PIL import Image
 
+from workshop.config import settings
 from workshop.utils import load_sprite_sheet
 
-DEFAULT_MODEL = "gpt-image-2.5-sunburst-2026-09-08"
+DEFAULT_MODEL = settings.default_imagen_model
 
 
-def load_env_key(key_name: str = "OPENAI_API_KEY", root_dir: Optional[Path] = None) -> str:
-    """Load `key_name` from environment, `<root>/.env`, or `~/.env`."""
+def load_env_key(key_name: str = "OPENAI_API_KEY", root_dir: Path | None = None) -> str:
+    """Load `key_name` from environment or settings."""
     if os.environ.get(key_name):
         return os.environ[key_name]
 
-    candidates = []
-    if root_dir is not None:
-        candidates.append(Path(root_dir) / ".env")
-    candidates.extend([Path.cwd() / ".env", Path.home() / ".env"])
+    if key_name == "OPENAI_API_KEY" and settings.openai_api_key:
+        return settings.openai_api_key
+    if key_name == "GOOGLE_GENERATIVE_AI_API_KEY" and settings.google_generative_ai_api_key:
+        return settings.google_generative_ai_api_key
 
-    for env_path in candidates:
-        if env_path.is_file():
-            for raw_line in env_path.read_text().splitlines():
+    # Check root_dir/.env if specified
+    if root_dir is not None:
+        custom_env = Path(root_dir) / ".env"
+        if custom_env.is_file():
+            for raw_line in custom_env.read_text().splitlines():
                 line = raw_line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                k, v = line.split("=", 1)
-                k = k.strip()
-                v = v.strip().strip('"').strip("'")
-                if k and k not in os.environ:
-                    os.environ[k] = v
-            if os.environ.get(key_name):
-                return os.environ[key_name]
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    if k.strip() == key_name:
+                        return v.strip().strip('"').strip("'")
 
     raise RuntimeError(
-        f"Missing {key_name}. Please add `{key_name}=sk-...` to `.env` in the project root or `~/.env`."
+        f"Missing {key_name}. Please add `{key_name}=...` to `.env` in the project root or `~/.env`."
     )
+
 
 
 def _image_to_data_url(img: Image.Image) -> str:
@@ -68,9 +66,9 @@ def call_openai_image_edit(
     size: str = "1536x512",
     quality: str = "high",
     output_format: str = "png",
-    background: Optional[str] = None,
-    mask: Optional[Image.Image] = None,
-    api_key: Optional[str] = None,
+    background: str | None = None,
+    mask: Image.Image | None = None,
+    api_key: str | None = None,
     timeout: int = 180,
 ) -> Image.Image:
     """Call OpenAI `POST /v1/images/edits` and return the decoded PIL Image."""
@@ -113,11 +111,11 @@ def call_openai_image_edit(
 
 def call_gemini_omni_video(
     prompt: str,
-    output_path: Union[str, Path],
-    images: Optional[list[Union[str, Path, Image.Image]]] = None,
+    output_path: str | Path,
+    images: list[str | Path | Image.Image] | None = None,
     model: str = "gemini-omni-1.1-flash",
-    task: Optional[str] = None,
-    api_key: Optional[str] = None,
+    task: str | None = None,
+    api_key: str | None = None,
     timeout: int = 360,
 ) -> Path:
     """Generate an MP4 video via Google Gemini Interactions API (`gemini-omni-1.1-flash`)."""
@@ -185,8 +183,8 @@ def call_gemini_omni_video(
 
 
 def build_transition_anchor(
-    from_sheet: Union[str, Path, Image.Image],
-    to_sheet: Union[str, Path, Image.Image],
+    from_sheet: str | Path | Image.Image,
+    to_sheet: str | Path | Image.Image,
     canvas_w: int = 1080,
     canvas_h: int = 360,
     from_scale: float = 0.6806,
@@ -237,7 +235,7 @@ def match_sprite_to_background(
     sprite_frame: Image.Image,
     target_bg_h: int = 360,
     search_side: str = "right",
-    expected_scale: Optional[float] = None,
+    expected_scale: float | None = None,
 ) -> tuple[float, int, int]:
     """Find `(video_scale, offset_x, video_y)` that aligns `sprite_frame` onto `bg_img` (scaled to `target_bg_h`)."""
     raw_w, raw_h = sprite_frame.size
@@ -286,8 +284,8 @@ def generate_scene_bridge(
     model: str = DEFAULT_MODEL,
     size: str = "1536x512",
     quality: str = "high",
-    prompt: Optional[str] = None,
-    save_anchor_path: Optional[Path] = None,
+    prompt: str | None = None,
+    save_anchor_path: Path | None = None,
     overwrite: bool = False,
 ) -> Path:
     """Generate (or reuse if cached and `overwrite=False`) a transition bridge image between two scenes."""
@@ -343,19 +341,20 @@ def generate_scene_bridge(
 def append_scene_to_timeline(
     video_path: Path,
     timeline_path: Path = Path("timelines/timeline.toml"),
-    scene_id: Optional[str] = None,
+    scene_id: str | None = None,
     video_scale: float = 0.75,
     bridge_width: int = 1080,
     overlap_prev: int = 180,
     model: str = DEFAULT_MODEL,
     size: str = "1536x512",
     quality: str = "high",
-    prompt: Optional[str] = None,
+    prompt: str | None = None,
     overwrite: bool = False,
 ) -> Path:
     """End-to-end helper: convert a new MP4 into a sprite sheet, generate the OpenAI bridge from the
     last scene in `timeline_path`, and append the new `[[scenes]]` entry to `timeline_path`."""
     import tomllib
+
     from workshop.sprite import generate_sprite_sheet
 
     video = Path(video_path)

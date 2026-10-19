@@ -5,7 +5,6 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 from PIL import Image
@@ -35,7 +34,7 @@ def parse_hex_color(hex_str: str) -> tuple[int, int, int, int]:
 def create_gradient_image(
     width: int,
     height: int,
-    colors: list[Union[tuple[int, int, int, int], str]],
+    colors: list[tuple[int, int, int, int] | str],
     direction: str = "vertical",
 ) -> Image.Image:
     """Generate an RGBA gradient image supporting vertical, horizontal, diagonal, and radial patterns."""
@@ -92,10 +91,10 @@ def create_gradient_image(
 def create_scene_radial_backdrop(
     width: int,
     height: int,
-    inner_color: Union[tuple[int, int, int, int], str] = "#203a55",
+    inner_color: tuple[int, int, int, int] | str = "#203a55",
     radius_scale: float = 2.0,
-    radius_x: Optional[float] = None,
-    radius_y: Optional[float] = None,
+    radius_x: float | None = None,
+    radius_y: float | None = None,
     center_y_ratio: float = 0.52,
 ) -> tuple[Image.Image, int, int]:
     """Create a soft radial gradient backdrop that fades out smoothly to transparent at the edges.
@@ -146,8 +145,8 @@ def create_scene_radial_backdrop(
 
 
 def load_sprite_sheet(
-    sheet_path: Union[str, Path],
-    grid_str: Optional[str] = None,
+    sheet_path: str | Path,
+    grid_str: str | None = None,
     allow_single_image: bool = False,
 ) -> tuple[list[Image.Image], dict]:
     """Load a sprite sheet image and slice it into individual RGBA frames using .json or grid."""
@@ -198,10 +197,10 @@ def load_sprite_sheet(
 
 def save_sprite_sheet(
     frames: list[Image.Image],
-    output_path: Union[str, Path],
-    columns: Optional[int] = None,
-    interval: Optional[float] = None,
-    fps: Optional[float] = None,
+    output_path: str | Path,
+    columns: int | None = None,
+    interval: float | None = None,
+    fps: float | None = None,
 ) -> tuple[Path, Path]:
     """Pack a list of frames into a grid sprite sheet and save it with a .json metadata file."""
     if not frames:
@@ -258,7 +257,7 @@ def crop_transparent(frames: list[Image.Image]) -> list[Image.Image]:
     return [f.crop(union_box) for f in frames]
 
 
-def extract_video_frames(video_path: Union[str, Path], interval: float, out_dir: Path) -> list[Path]:
+def extract_video_frames(video_path: str | Path, interval: float, out_dir: Path) -> list[Path]:
     """Extract frames from a video at a fixed second interval using ffmpeg."""
     subprocess.run(
         [
@@ -272,7 +271,7 @@ def extract_video_frames(video_path: Union[str, Path], interval: float, out_dir:
     return sorted(out_dir.glob("f_*.png"))
 
 
-def resolve_gif_encoder(preference: Optional[str] = None) -> str:
+def resolve_gif_encoder(preference: str | None = None) -> str:
     """Pick the GIF encoder: explicit preference > $WORKSHOP_GIF_ENCODER > gifski if installed > ffmpeg."""
     choice = (preference or os.environ.get("WORKSHOP_GIF_ENCODER") or "auto").lower()
     if choice not in ("auto", "gifski", "ffmpeg"):
@@ -296,19 +295,19 @@ class AnimationWriter:
 
     def __init__(
         self,
-        output_path: Union[str, Path],
+        output_path: str | Path,
         width: int,
         height: int,
         fps: int = 24,
         make_gif: bool = False,
-        gif_encoder: Optional[str] = None,
+        gif_encoder: str | None = None,
         gif_quality: int = 90,
     ):
         out = Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)
         self.size = (width, height)
         self.mp4_path = out.with_suffix(".mp4")
-        self.gif_path: Optional[Path] = out.with_suffix(".gif") if make_gif else None
+        self.gif_path: Path | None = out.with_suffix(".gif") if make_gif else None
         self.gif_encoder = resolve_gif_encoder(gif_encoder) if make_gif else None
         self.frame_count = 0
 
@@ -365,7 +364,7 @@ class AnimationWriter:
             self._sinks.append(gif)
             self._procs.append(gif)
 
-    def write(self, frame: Union[Image.Image, np.ndarray]) -> None:
+    def write(self, frame: Image.Image | np.ndarray) -> None:
         if isinstance(frame, Image.Image):
             if frame.size != self.size:
                 raise ValueError(f"Frame size {frame.size} != writer size {self.size}")
@@ -376,7 +375,7 @@ class AnimationWriter:
             proc.stdin.write(data)
         self.frame_count += 1
 
-    def close(self) -> tuple[Path, Optional[Path]]:
+    def close(self) -> tuple[Path, Path | None]:
         for proc in self._sinks:
             if proc.stdin and not proc.stdin.closed:
                 proc.stdin.close()

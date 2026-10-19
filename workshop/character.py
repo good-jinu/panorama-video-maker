@@ -5,9 +5,7 @@ Encapsulates:
 - Ground-level alignment and paw contact drop shadow
 - Precise stride locking (connecting walk pace to camera tracking speed)
 """
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 from PIL import Image
@@ -20,8 +18,6 @@ def create_contact_shadow(
     height: int,
     opacity: float = 0.35,
 ) -> Image.Image:
-    """Generate a soft elliptical contact drop-shadow for character grounding."""
-    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     y, x = np.ogrid[:height, :width]
     cx, cy = width / 2.0, height / 2.0
     rx, ry = width * 0.46, height * 0.46
@@ -41,24 +37,24 @@ class CharacterActor:
 
     def __init__(
         self,
-        sheet_path: Union[str, Path],
+        sheet_path: str | Path,
         scale: float = 0.45,
         frames_spec: str = "all",
         floor_y: int = 352,
         canvas_w: int = 640,
-        fixed_x: Optional[int] = None,
-        fixed_y: Optional[int] = None,
+        fixed_x: int | None = None,
+        fixed_y: int | None = None,
         flip: bool = False,
         shadow: bool = True,
         shadow_opacity: float = 0.35,
         shadow_width_scale: float = 0.70,
         shadow_height: int = 14,
-        stride_pixels: Optional[float] = None,
-        full_sheet_path: Optional[Union[str, Path]] = None,
-        outro_time: Optional[float] = None,
-        action_loop_step: Optional[int] = None,
-        meow_loop_step: Optional[int] = None,
-        root_dir: Optional[Path] = None,
+        stride_pixels: float | None = None,
+        full_sheet_path: str | Path | None = None,
+        outro_time: float | None = None,
+        action_loop_step: int | None = None,
+        meow_loop_step: int | None = None,
+        root_dir: Path | None = None,
     ):
         root = root_dir or Path.cwd()
         self.canvas_w = canvas_w
@@ -126,7 +122,7 @@ class CharacterActor:
             self.shadow_base_y = floor_y - sw_h // 2
             self.shadow_pos = (self.shadow_base_x, self.shadow_base_y)
 
-    def _get_active_state(self, t: float) -> tuple[Optional[Image.Image], tuple[int, int], Optional[tuple[int, int]]]:
+    def _get_active_state(self, t: float) -> tuple[Image.Image | None, tuple[int, int], tuple[int, int] | None]:
         """Compute (frame, actor_pos, shadow_pos) at story time `t`."""
         if self.outro_time is not None and self.outro_frames and len(self.outro_frames) >= 40:
             if t >= self.outro_time:
@@ -186,11 +182,11 @@ class CharacterActor:
             return Image.new("RGBA", (self.width, self.height), (0, 0, 0, 0))
         return frame
 
-    def get_actor_frame_and_pos(self, t: float) -> tuple[Optional[Image.Image], tuple[int, int]]:
+    def get_actor_frame_and_pos(self, t: float) -> tuple[Image.Image | None, tuple[int, int]]:
         frame, pos, _ = self._get_active_state(t)
         return frame, pos
 
-    def get_shadow(self, t: float) -> tuple[Optional[Image.Image], Optional[tuple[int, int]]]:
+    def get_shadow(self, t: float) -> tuple[Image.Image | None, tuple[int, int] | None]:
         if not self.has_shadow:
             return None, None
         _, _, s_pos = self._get_active_state(t)

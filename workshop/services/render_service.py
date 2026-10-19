@@ -1,11 +1,11 @@
 """Asynchronous render job execution and lifecycle management."""
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from sqlmodel import Session
 
+from workshop.config import settings
 from workshop.db.database import get_engine
 from workshop.db.models import Asset, Project, RenderJob
 from workshop.long_composite import render_long_animation
@@ -34,10 +34,11 @@ def start_render_job(session: Session, project_id: int) -> RenderJob:
     return job
 
 
-def run_render_job(job_id: str, root_dir: Optional[Path] = None) -> None:
+def run_render_job(job_id: str, root_dir: Path | None = None) -> None:
     """Execute the render job synchronously or inside a background thread/task."""
     engine = get_engine()
-    root = root_dir or Path.cwd()
+    root = root_dir or settings.root_dir
+
 
     with Session(engine) as session:
         job = session.get(RenderJob, job_id)
@@ -77,7 +78,7 @@ def run_render_job(job_id: str, root_dir: Optional[Path] = None) -> None:
             job.status = "COMPLETED"
             job.progress = 1.0
             job.output_path = str(output_path.relative_to(root)) if output_path.is_relative_to(root) else str(output_path)
-            job.completed_at = datetime.now(timezone.utc)
+            job.completed_at = datetime.now(UTC)
 
             # Register as an Asset for lineage & provenance tracking
             asset = Asset(
@@ -95,5 +96,5 @@ def run_render_job(job_id: str, root_dir: Optional[Path] = None) -> None:
             logger.exception("Render job %s failed: %s", job_id, exc)
             job.status = "FAILED"
             job.error_message = str(exc)
-            job.completed_at = datetime.now(timezone.utc)
+            job.completed_at = datetime.now(UTC)
             session.commit()

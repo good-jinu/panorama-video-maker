@@ -5,7 +5,7 @@ import pytest
 from PIL import Image
 
 from tests.conftest import make_sheet
-from workshop.character import CharacterActor, create_contact_shadow
+from workshop.character import CharacterActor
 from workshop.scenes import compose_extended_scene
 from workshop.timeline import SceneSpec, StoryTimeline, TimelineConfig
 

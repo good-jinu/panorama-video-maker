@@ -11,14 +11,13 @@ Implements end-to-end video platform capabilities:
 8. Audio download & music station packaging
 """
 import json
-import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Sequence
 
 from mcp.server.mcpserver import MCPServer
 from sqlmodel import Session, select
 
+from workshop.config import ROOT_DIR
 from workshop.db.database import get_engine, init_db
 from workshop.db.models import (
     Asset,
@@ -39,8 +38,6 @@ from workshop.services.project_service import (
 )
 from workshop.services.render_service import run_render_job, start_render_job
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-
 # Initialize database schema
 init_db()
 
@@ -58,18 +55,18 @@ mcp = MCPServer(
 @mcp.tool()
 def create_project(
     title: str,
-    description: Optional[str] = None,
+    description: str | None = None,
     canvas_w: int = 640,
     canvas_h: int = 360,
     fps: int = 24,
     bg_color: str = "#ffffff",
-    bg_gradient: Optional[str] = None,
+    bg_gradient: str | None = None,
     bg_gradient_direction: str = "vertical",
-    char_sheet: Optional[str] = None,
+    char_sheet: str | None = None,
     char_scale: float = 0.45,
     floor_y: int = 352,
-    stride_pixels: Optional[float] = None,
-    action_loop_step: Optional[int] = None,
+    stride_pixels: float | None = None,
+    action_loop_step: int | None = None,
 ) -> str:
     """Create a new video editing project in SQLite."""
     engine = get_engine()
@@ -188,22 +185,22 @@ def add_scene(
     sheet_path: str,
     name: str = "scene",
     order_idx: int = 0,
-    left_bg_path: Optional[str] = None,
-    left_bg_offset: Optional[int] = None,
+    left_bg_path: str | None = None,
+    left_bg_offset: int | None = None,
     scale: float = 1.0,
-    video_scale: Optional[float] = None,
+    video_scale: float | None = None,
     video_y: int = 0,
     y: int = 0,
     overlap_prev: int = 0,
-    left_feather_l: Optional[int] = None,
-    left_feather_r: Optional[int] = None,
+    left_feather_l: int | None = None,
+    left_feather_r: int | None = None,
     anim_delay: float = 0.0,
     pingpong: bool = False,
-    loop_start_frame: Optional[int] = None,
+    loop_start_frame: int | None = None,
     hold_duration: float = 0.0,
     hide_actor_during_hold: bool = False,
-    hold_frame_segments: Optional[str] = None,
-    seam_feather_width: Optional[int] = None,
+    hold_frame_segments: str | None = None,
+    seam_feather_width: int | None = None,
 ) -> str:
     """Add a scene to a project timeline with complete placement, loop, and hold controls."""
     engine = get_engine()
@@ -249,11 +246,11 @@ def add_scene(
 def set_character_actor(
     project_id: int,
     char_sheet: str,
-    char_full_sheet: Optional[str] = None,
+    char_full_sheet: str | None = None,
     char_scale: float = 0.45,
     floor_y: int = 352,
-    stride_pixels: Optional[float] = None,
-    action_loop_step: Optional[int] = None,
+    stride_pixels: float | None = None,
+    action_loop_step: int | None = None,
 ) -> str:
     """Configure the foreground actor, walk cycle sheet, and camera stride-locking pace."""
     engine = get_engine()
@@ -268,7 +265,7 @@ def set_character_actor(
         project.floor_y = floor_y
         project.stride_pixels = stride_pixels
         project.action_loop_step = action_loop_step
-        project.updated_at = datetime.now(timezone.utc)
+        project.updated_at = datetime.now(UTC)
         session.add(project)
         session.commit()
         return json.dumps({
@@ -284,8 +281,8 @@ def record_asset(
     project_id: int,
     asset_type: str,
     file_path: str,
-    model_name: Optional[str] = None,
-    prompt: Optional[str] = None,
+    model_name: str | None = None,
+    prompt: str | None = None,
     version: int = 1,
 ) -> str:
     """Record a media asset (video, image, sprite) with prompt and model lineage."""
@@ -321,7 +318,7 @@ def record_asset(
 @mcp.tool()
 def extract_sprite_from_video(
     video_path: str,
-    output_sheet: Optional[str] = None,
+    output_sheet: str | None = None,
     crop: bool = False,
     keep_frames: bool = False,
     keep_background: bool = False,
@@ -358,8 +355,8 @@ def generate_transition_bridge(
     to_sheet: str,
     from_scale: float = 0.6806,
     to_scale: float = 0.75,
-    output_path: Optional[str] = None,
-    prompt: Optional[str] = None,
+    output_path: str | None = None,
+    prompt: str | None = None,
     model: str = "gpt-image-2.5-sunburst-2026-09-08",
     size: str = "1536x512",
     quality: str = "high",
@@ -393,7 +390,7 @@ def generate_transition_bridge(
 def generate_ai_video_clip(
     prompt: str,
     output_path: str,
-    image_paths: Optional[list[str]] = None,
+    image_paths: list[str] | None = None,
     model: str = "gemini-omni-1.1-flash",
 ) -> str:
     """Generate a 10-second keyframe-conditioned animated MP4 clip via Gemini Omni."""
@@ -418,11 +415,11 @@ def generate_ai_video_clip(
 def append_video_scene(
     project_id: int,
     video_path: str,
-    scene_name: Optional[str] = None,
+    scene_name: str | None = None,
     video_scale: float = 0.75,
-    prompt: Optional[str] = None,
+    prompt: str | None = None,
     overwrite_bridge: bool = False,
-    seam_feather_width: Optional[int] = None,
+    seam_feather_width: int | None = None,
     hold_duration: float = 0.0,
     hide_actor_during_hold: bool = False,
 ) -> str:
@@ -463,7 +460,7 @@ def append_video_scene(
 def build_music_station_video(
     video_path: str,
     youtube_urls: list[str],
-    output_path: Optional[str] = None,
+    output_path: str | None = None,
 ) -> str:
     """Download YouTube audio playlist tracks via yt-dlp, concatenate into 48kHz AAC, and stream-loop the video."""
     try:
@@ -525,7 +522,7 @@ def check_render_status(job_id: str) -> str:
 
 
 @mcp.tool()
-def import_timeline_toml(toml_path: str = "timelines/timeline.example.toml", title: Optional[str] = None) -> str:
+def import_timeline_toml(toml_path: str = "timelines/timeline.example.toml", title: str | None = None) -> str:
     """Import or reload any timeline TOML file into SQLite as a Project with all scenes, bridges, and parameters."""
     engine = get_engine()
     with Session(engine) as session:

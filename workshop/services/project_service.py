@@ -1,11 +1,11 @@
 import json
-from pathlib import Path
-from typing import Optional, Union
 import tomllib
+from pathlib import Path
 
 from sqlmodel import Session, select
 
-from workshop.db.models import Asset, Project, ProjectCreate, RenderJob, Scene
+from workshop.config import settings
+from workshop.db.models import Project, ProjectCreate, Scene
 from workshop.timeline import SceneSpec, TimelineConfig, build_timeline
 
 
@@ -17,14 +17,15 @@ def create_project(session: Session, project_in: ProjectCreate) -> Project:
     return project
 
 
-def get_project_with_relations(session: Session, project_id: int) -> Optional[Project]:
+def get_project_with_relations(session: Session, project_id: int) -> Project | None:
     statement = select(Project).where(Project.id == project_id)
     return session.exec(statement).first()
 
 
-def project_to_timeline_config(project: Project, root_dir: Optional[Path] = None) -> TimelineConfig:
+def project_to_timeline_config(project: Project, root_dir: Path | None = None) -> TimelineConfig:
     """Transform database Project and attached Scenes into the engine's TimelineConfig."""
-    root = root_dir or Path.cwd()
+    root = root_dir or settings.root_dir
+
 
     # Parse gradient colors if stored as JSON or comma-separated
     bg_gradient = None
@@ -97,14 +98,15 @@ def project_to_timeline_config(project: Project, root_dir: Optional[Path] = None
 
 
 def import_timeline_toml_to_project(
-    toml_path: Union[str, Path],
+    toml_path: str | Path,
     session: Session,
-    title: Optional[str] = None,
-    root_dir: Optional[Path] = None,
+    title: str | None = None,
+    root_dir: Path | None = None,
 ) -> Project:
     """Import or sync a timeline TOML file (e.g. timelines/timeline.example.toml) into SQLite database."""
-    root = root_dir or Path.cwd()
+    root = root_dir or settings.root_dir
     toml_p = Path(toml_path)
+
     if not toml_p.is_absolute():
         toml_p = root / toml_p
 

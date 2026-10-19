@@ -9,7 +9,6 @@ Usage:
 import argparse
 import shutil
 from pathlib import Path
-from typing import Optional
 
 import cv2
 import numpy as np
@@ -27,7 +26,7 @@ def clean_frame(
     target_rgb: np.ndarray,
     fringe_tol: float = 32.0,
     gap_tol: float = 22.0,
-    protect_box: Optional[tuple[int, int, int, int]] = JEANS_BOX,
+    protect_box: tuple[int, int, int, int] | None = JEANS_BOX,
 ) -> tuple[Image.Image, int, int]:
     """Clean a single RGBA frame. Returns (cleaned_frame, fringe_removed_count, gaps_removed_count)."""
     arr = np.array(frame.convert("RGBA"))
@@ -67,7 +66,7 @@ def clean_frame(
 
 def clean_sprite_sheet(
     input_path: Path,
-    output_path: Optional[Path] = None,
+    output_path: Path | None = None,
     target_bg_hex: str = "#2c4d6b",
     fringe_tol: float = 32.0,
     gap_tol: float = 22.0,

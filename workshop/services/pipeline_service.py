@@ -8,14 +8,17 @@ Includes:
 5. Audio playlist assembly and looped video muxing
 """
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
+from workshop.config import settings
 from workshop.db.models import Asset, Project, Scene
 from workshop.imagen import (
     DEFAULT_MODEL as DEFAULT_IMAGEN_MODEL,
+)
+from workshop.imagen import (
     call_gemini_omni_video,
     generate_scene_bridge,
 )
@@ -26,9 +29,10 @@ from workshop.utils import load_sprite_sheet
 logger = logging.getLogger(__name__)
 
 
+
 def extract_sprite_pipeline(
     video_path: Path,
-    output_sheet: Optional[Path] = None,
+    output_sheet: Path | None = None,
     crop: bool = False,
     keep_frames: bool = False,
     keep_background: bool = False,
@@ -38,8 +42,7 @@ def extract_sprite_pipeline(
 ) -> Path:
     """Extract frames from an MP4 into an RGBA sprite sheet."""
     stem = video_path.stem
-    root = Path.cwd()
-    out = output_sheet or (root / "outputs" / stem / "sprite_bg.png" if keep_background else root / "outputs" / stem / "sprite.png")
+    out = output_sheet or (settings.outputs_dir / stem / "sprite_bg.png" if keep_background else settings.outputs_dir / stem / "sprite.png")
     out.parent.mkdir(parents=True, exist_ok=True)
 
     generate_sprite_sheet(
@@ -60,19 +63,19 @@ def generate_bridge_pipeline(
     to_sheet: Path,
     from_scale: float = 0.6806,
     to_scale: float = 0.75,
-    output_path: Optional[Path] = None,
-    prompt: Optional[str] = None,
+    output_path: Path | None = None,
+    prompt: str | None = None,
     model: str = DEFAULT_IMAGEN_MODEL,
     size: str = "1536x512",
     quality: str = "high",
     overwrite: bool = False,
 ) -> Path:
     """Synthesize a panoramic transition bridge between two sprite sheets via OpenAI."""
-    root = Path.cwd()
     if output_path is None:
-        bridges_dir = root / "inputs" / "bridges"
+        bridges_dir = settings.bridges_dir
         bridges_dir.mkdir(parents=True, exist_ok=True)
         output_path = bridges_dir / f"{from_sheet.parent.name}-to-{to_sheet.parent.name}-bridge.png"
+
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     return generate_scene_bridge(
@@ -92,7 +95,7 @@ def generate_bridge_pipeline(
 def generate_ai_video_pipeline(
     prompt: str,
     output_path: Path,
-    image_paths: Optional[Sequence[Path]] = None,
+    image_paths: Sequence[Path] | None = None,
     model: str = "gemini-omni-1.1-flash",
 ) -> Path:
     """Generate a keyframe-conditioned video clip using Gemini Omni."""
@@ -109,12 +112,12 @@ def append_video_scene_to_project(
     session: Session,
     project_id: int,
     video_path: Path,
-    scene_name: Optional[str] = None,
+    scene_name: str | None = None,
     video_scale: float = 0.75,
-    prompt: Optional[str] = None,
+    prompt: str | None = None,
     bridge_model: str = DEFAULT_IMAGEN_MODEL,
     overwrite_bridge: bool = False,
-    seam_feather_width: Optional[int] = None,
+    seam_feather_width: int | None = None,
     hold_duration: float = 0.0,
     hide_actor_during_hold: bool = False,
 ) -> Scene:
@@ -125,7 +128,7 @@ def append_video_scene_to_project(
     3. Calculates scale, offset, and anim_delay automatically
     4. Registers the new Scene and generative Assets in the database
     """
-    root = Path.cwd()
+    root = settings.root_dir
     project = session.get(Project, project_id)
     if not project:
         raise ValueError(f"Project {project_id} not found")
@@ -135,13 +138,13 @@ def append_video_scene_to_project(
     scene_id = scene_name or stem
 
     # 1. Extract sprite sheet
-    sheet_path = root / "outputs" / stem / "sprite_bg.png"
+    sheet_path = settings.outputs_dir / stem / "sprite_bg.png"
     if not sheet_path.exists() or overwrite_bridge:
         sheet_path = extract_sprite_pipeline(video_path, output_sheet=sheet_path, keep_background=True)
 
     # 2. Inspect video dimensions for auto-offset
     frames, meta = load_sprite_sheet(sheet_path)
-    fw, fh = meta["frameWidth"], meta["frameHeight"]
+    fw, _fh = meta["frameWidth"], meta["frameHeight"]
 
     # Calculate offset
     left_bg_offset = round(1080 - fw * video_scale)
@@ -163,7 +166,7 @@ def append_video_scene_to_project(
             prev_sheet = root / prev_sheet
 
         prev_scale = prev_scene.video_scale or prev_scene.scale or 0.75
-        bridge_file = root / "inputs" / "bridges" / f"{prev_scene.name}-to-{scene_id}-bridge.png"
+        bridge_file = settings.bridges_dir / f"{prev_scene.name}-to-{scene_id}-bridge.png"
 
         try:
             generate_bridge_pipeline(
@@ -237,11 +240,11 @@ def append_video_scene_to_project(
 def build_music_station_pipeline(
     video_path: Path,
     youtube_urls: Sequence[str],
-    output_path: Optional[Path] = None,
+    output_path: Path | None = None,
 ) -> Path:
     """Download YouTube audio, concatenate, and loop video over the full soundtrack."""
-    root = Path.cwd()
-    out = output_path or (root / "outputs" / "music_station" / "music_station.mp4")
+    root = settings.root_dir
+    out = output_path or (settings.outputs_dir / "music_station" / "music_station.mp4")
     out.parent.mkdir(parents=True, exist_ok=True)
     return build_music_station(
         video_path=video_path,
@@ -249,3 +252,4 @@ def build_music_station_pipeline(
         output=out,
         root_dir=root,
     )
+

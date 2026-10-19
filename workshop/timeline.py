@@ -8,10 +8,11 @@ The mental model:
 - When `start_on_screen=True`, the first scene opens at `world_x_start = 0.0`,
   so the video starts directly inside the scenery with zero empty lead-in.
 """
+import tomllib
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterator, Optional, Union
-import tomllib
+from typing import Any
 
 from PIL import Image
 
@@ -27,25 +28,25 @@ class SceneSpec:
 
     id: str
     sheet: Path
-    left_bg: Optional[Path] = None
-    left_bg_offset: Optional[int] = None
-    left_bg_scale: Optional[float] = None
-    video_scale: Optional[float] = None
-    video_y: Union[int, str] = 0
+    left_bg: Path | None = None
+    left_bg_offset: int | None = None
+    left_bg_scale: float | None = None
+    video_scale: float | None = None
+    video_y: int | str = 0
     scale: float = 1.0
     y: int = 0
-    duration: Optional[float] = None
+    duration: float | None = None
     gap_after: float = 2.0
     overlap_prev: int = 0
-    left_feather: Optional[tuple[int, int]] = None
+    left_feather: tuple[int, int] | None = None
     parallax: float = 1.0  # 1.0 = camera speed, < 1.0 = background parallax
     anim_delay: float = 0.0
-    loop_start_frame: Optional[int] = None
+    loop_start_frame: int | None = None
     pingpong: bool = False
     hold_duration: float = 0.0
     hide_actor_during_hold: bool = False
-    hold_frame_segments: Optional[list[list[int]]] = None
-    seam_feather_width: Optional[int] = None
+    hold_frame_segments: list[list[int]] | None = None
+    seam_feather_width: int | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     # Calculated when timeline is solved:
@@ -89,24 +90,24 @@ class TimelineConfig:
     canvas_h: int = 360
     fps: int = 24
     bg_color: str = "#ffffff"
-    bg_gradient: Optional[list[str]] = None
+    bg_gradient: list[str] | None = None
     bg_gradient_direction: str = "vertical"
     start_on_screen: bool = True
     hold_last_scene: bool = False
 
     # Character actor setup
     char_sheet: Path = Path("outputs/character/sprite.png")
-    char_full_sheet: Optional[Path] = None
-    char_outro_time: Optional[float] = None
-    action_loop_step: Optional[int] = None
-    meow_loop_step: Optional[int] = None
+    char_full_sheet: Path | None = None
+    char_outro_time: float | None = None
+    action_loop_step: int | None = None
+    meow_loop_step: int | None = None
     char_scale: float = 0.45
     char_frames: str = "all"
     floor_y: int = 352
-    char_x: Optional[int] = None
-    char_y: Optional[int] = None
-    cat_x: Optional[int] = None
-    cat_y: Optional[int] = None
+    char_x: int | None = None
+    char_y: int | None = None
+    cat_x: int | None = None
+    cat_y: int | None = None
     flip_char: bool = False
 
     # Ground contact drop shadow
@@ -116,8 +117,8 @@ class TimelineConfig:
     shadow_height: int = 14
 
     # Camera tracking & stride locking
-    speed: Optional[float] = None
-    stride_pixels: Optional[float] = None
+    speed: float | None = None
+    stride_pixels: float | None = None
 
     # Story scenes sequence
     scenes: list[SceneSpec] = field(default_factory=list)
@@ -126,7 +127,7 @@ class TimelineConfig:
 class StoryTimeline:
     """High-level timeline solver and viewport query engine."""
 
-    def __init__(self, config: TimelineConfig, root_dir: Optional[Path] = None):
+    def __init__(self, config: TimelineConfig, root_dir: Path | None = None):
         self.config = config
         self.root = root_dir or Path.cwd()
         self.speed = self._resolve_speed()
@@ -134,7 +135,7 @@ class StoryTimeline:
         self._holds: list[tuple[float, float, float, float, SceneSpec]] = []
         self.total_duration = self._solve_world_positions()
 
-    def _resolve_path(self, path: Union[str, Path]) -> Path:
+    def _resolve_path(self, path: str | Path) -> Path:
         p = Path(path)
         if p.is_absolute():
             return p
@@ -374,13 +375,13 @@ class StoryTimeline:
                 yield s, sx
 
 
-def build_timeline(config: TimelineConfig, root_dir: Optional[Path] = None) -> float:
+def build_timeline(config: TimelineConfig, root_dir: Path | None = None) -> float:
     """Solve the world-coordinate timeline for all scenes. Returns total duration in seconds."""
     solver = StoryTimeline(config, root_dir=root_dir)
     return solver.total_duration
 
 
-def load_timeline_toml(path: Union[str, Path], root_dir: Optional[Path] = None) -> TimelineConfig:
+def load_timeline_toml(path: str | Path, root_dir: Path | None = None) -> TimelineConfig:
     """Load and solve a TimelineConfig from a TOML file."""
     path = Path(path)
     root = root_dir or Path.cwd()

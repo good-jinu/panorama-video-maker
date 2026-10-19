@@ -5,6 +5,7 @@ Usage:
 """
 import argparse
 from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from workshop.utils import parse_hex_color

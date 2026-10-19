@@ -5,8 +5,8 @@ import argparse
 import re
 import shutil
 import subprocess
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence, Union
 
 
 def _extract_youtube_id(url: str) -> str:
@@ -37,7 +37,7 @@ def _probe_duration(path: Path) -> float:
 
 def download_youtube_audio(
     urls: Sequence[str],
-    music_dir: Union[str, Path] = Path("inputs/music"),
+    music_dir: str | Path = Path("inputs/music"),
 ) -> list[Path]:
     """Download YouTube audio tracks as .m4a files in order, reusing cached files if present."""
     out_dir = Path(music_dir)
@@ -135,10 +135,10 @@ def concat_audio_tracks(tracks: Sequence[Path], output_audio: Path) -> Path:
 
 
 def build_music_station(
-    video_path: Union[str, Path],
-    output: Union[str, Path],
+    video_path: str | Path,
+    output: str | Path,
     urls: list[str],
-    music_dir: Union[str, Path] = Path("inputs/music"),
+    music_dir: str | Path = Path("inputs/music"),
     playlist_loops: int = 1,
 ) -> Path:
     """Download playlist tracks, concatenate audio, and loop `video_path` over the full soundtrack."""

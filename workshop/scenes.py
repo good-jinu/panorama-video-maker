@@ -7,12 +7,16 @@ Provides self-contained abstractions for scenes:
 """
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
 
 from workshop.utils import create_scene_radial_backdrop, load_sprite_sheet
+
+if TYPE_CHECKING:
+    from workshop.timeline import SceneSpec
+
 
 
 def _compute_overlap_seam_mask(
@@ -21,7 +25,7 @@ def _compute_overlap_seam_mask(
     offset: int,
     actual_video_y: int,
     feather_px: float = 8.0,
-) -> Optional[np.ndarray]:
+) -> np.ndarray | None:
     """Compute a 2D alpha mask (vh, vw) that smoothly transitions across the minimum-error seam."""
     vid_frame = vid_frames[0]
     vw, vh = vid_frame.size
@@ -120,10 +124,10 @@ def compose_extended_scene(
     offset: int,
     video_scale: float = 1.0,
     left_bg_scale: float = 1.0,
-    video_y: Union[int, str] = 0,
+    video_y: int | str = 0,
     seamless: bool = True,
-    left_edge_feather: Optional[tuple[int, int]] = None,
-    seam_feather_width: Optional[int] = None,
+    left_edge_feather: tuple[int, int] | None = None,
+    seam_feather_width: int | None = None,
 ) -> list[Image.Image]:
     """Stitch a static left background extension onto an animated sprite sheet.
 
@@ -258,7 +262,7 @@ class LoadedScene:
     spec: "SceneSpec"
     frames: list[Image.Image]
     interval: float
-    backdrop: Optional[Image.Image] = None
+    backdrop: Image.Image | None = None
     pad_x: int = 0
     pad_y: int = 0
 
@@ -329,12 +333,12 @@ class LoadedScene:
 class SceneCache:
     """Dynamic viewport-based loader for scenes along a long continuous timeline."""
 
-    def __init__(self, root_dir: Optional[Path] = None, max_cached: int = 3):
+    def __init__(self, root_dir: Path | None = None, max_cached: int = 3):
         self.root = root_dir or Path.cwd()
         self.max_cached = max_cached
         self._cache: dict[str, LoadedScene] = {}
 
-    def _resolve_path(self, path: Union[str, Path]) -> Path:
+    def _resolve_path(self, path: str | Path) -> Path:
         p = Path(path)
         if p.is_absolute():
             return p

@@ -14,7 +14,6 @@ Usage:
 """
 import argparse
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 from PIL import Image
@@ -33,7 +32,7 @@ def resolve_background(
     width: int,
     height: int,
     bg_color: str = "#ffffff",
-    bg_gradient: Optional[Union[str, list[str]]] = None,
+    bg_gradient: str | list[str] | None = None,
     direction: str = "vertical",
 ) -> tuple[Image.Image, tuple[int, int, int], str]:
     """Resolve solid color or gradient background canvas, fallback RGB color, and description."""
@@ -78,30 +77,30 @@ def resolve_background(
 
 
 def render_composite(
-    bg_sheets: Union[Path, list[Path]],
+    bg_sheets: Path | list[Path],
     fg_sheet: Path,
     output: Path,
     mode: str = "tracking",
     scale: float = 0.45,
-    scene_scale: Union[float, list[float]] = 0.70,
-    scene_y: Union[int, list[int]] = 15,
+    scene_scale: float | list[float] = 0.70,
+    scene_y: int | list[int] = 15,
     scene_gap: float = 2.0,
     floor_y: int = 352,
     fps: int = 24,
     bg_color: str = "#ffffff",
-    bg_gradient: Optional[Union[str, list[str]]] = None,
+    bg_gradient: str | list[str] | None = None,
     bg_gradient_direction: str = "vertical",
-    scene_gradient: Optional[Union[str, bool]] = None,
+    scene_gradient: str | bool | None = None,
     scene_gradient_scale: float = 2.0,
-    char_frames: Optional[str] = "1-15",
-    start_x: Optional[float] = None,
-    end_x: Optional[float] = None,
-    cat_x: Optional[float] = None,
-    cat_y: Optional[float] = None,
+    char_frames: str | None = "1-15",
+    start_x: float | None = None,
+    end_x: float | None = None,
+    cat_x: float | None = None,
+    cat_y: float | None = None,
     flip_fg: bool = False,
     gif: bool = False,
-    gif_encoder: Optional[str] = None,
-) -> tuple[Path, Optional[Path]]:
+    gif_encoder: str | None = None,
+) -> tuple[Path, Path | None]:
     if isinstance(bg_sheets, (str, Path)):
         bg_sheets = [Path(bg_sheets)]
 

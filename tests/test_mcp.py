@@ -1,16 +1,15 @@
 """Tests for Model Context Protocol (MCP) server tools."""
 import json
 from pathlib import Path
+
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import SQLModel, create_engine
 
 import workshop.db.database as db_mod
 from workshop.mcp_server import (
     add_scene,
-    check_render_status,
     create_project,
     get_project_details,
-    list_projects,
     record_asset,
     set_character_actor,
 )

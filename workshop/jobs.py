@@ -20,9 +20,10 @@ import inspect
 import sys
 import tomllib
 import typing
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 JOBS_DIR = ROOT / "jobs"

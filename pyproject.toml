@@ -12,6 +12,7 @@ dependencies = [
     "onnxruntime>=1.20",
     "opencv-python-headless>=4.10",
     "pillow>=10.4",
+    "pydantic-settings>=2.16.0",
     "sqlmodel>=0.0.48",
     "uvicorn[standard]>=0.54.0",
 ]
@@ -19,7 +20,29 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.3",
+    "ruff>=0.17.1",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line length handled by formatter
+    "B008",  # do not perform function calls in argument defaults (standard in FastAPI Depends)
+    "B904",  # within an except clause, raise exceptions with raise ... from err
+    "B905",  # zip() without an explicit strict= parameter
+]
+

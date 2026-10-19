@@ -1,19 +1,15 @@
 """Database session and connection management for SQLite."""
-import os
-from pathlib import Path
-from typing import Generator
+from collections.abc import Generator
 
 from sqlmodel import Session, SQLModel, create_engine
 
-ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-DEFAULT_DB_PATH = ROOT_DIR / "data" / "studio.db"
+from workshop.config import settings
+
+DEFAULT_DB_PATH = settings.data_dir / "studio.db"
 
 def get_database_url() -> str:
-    env_url = os.environ.get("DATABASE_URL")
-    if env_url:
-        return env_url
-    DEFAULT_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    return f"sqlite:///{DEFAULT_DB_PATH}"
+    return settings.resolved_database_url
+
 
 _engine = None
 
@@ -31,7 +27,7 @@ def init_db() -> None:
     engine = get_engine()
     SQLModel.metadata.create_all(engine)
 
-def get_session() -> Generator[Session, None, None]:
+def get_session() -> Generator[Session]:
     """FastAPI dependency for yielding database sessions."""
     engine = get_engine()
     with Session(engine) as session:
