@@ -541,6 +541,38 @@ def import_timeline_toml(toml_path: str = "timelines/timeline.example.toml", tit
             return json.dumps({"error": str(e)})
 
 
+@mcp.tool()
+def render_odyssey_journey(
+    journey_toml_path: str = "timelines/cat_odyssey.example.toml",
+    output_dir: str = "outputs/odyssey",
+) -> str:
+    """Run an A-to-Z vertical production for a side-scrolling Cat Odyssey journey.
+
+    Compiles the JourneySpec, renders continuous tracking shots with stride-locking,
+    synthesizes material-specific paw footstep foley, generates environmental audio,
+    and produces both 16:9 widescreen and 9:16 vertical mobile cuts.
+    """
+    try:
+        from workshop.odyssey.orchestrator import OdysseyOrchestrator
+        from workshop.odyssey.spec import JourneySpec
+
+        p = ROOT_DIR / journey_toml_path if not Path(journey_toml_path).is_absolute() else Path(journey_toml_path)
+        if not p.exists():
+            return json.dumps({"error": f"Journey file {p} not found"})
+
+        out_d = ROOT_DIR / output_dir if not Path(output_dir).is_absolute() else Path(output_dir)
+        journey = JourneySpec.from_toml_file(p)
+        orchestrator = OdysseyOrchestrator(journey, root_dir=ROOT_DIR)
+        result = orchestrator.run(output_dir=out_d)
+
+        return json.dumps({
+            "status": "success",
+            "production": result,
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
 def main():
     """Run MCP server in stdio mode."""
     mcp.run(transport="stdio")
@@ -548,3 +580,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

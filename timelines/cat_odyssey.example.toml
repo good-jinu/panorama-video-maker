@@ -1,0 +1,59 @@
+# Cat Odyssey Flagship Production Specification
+# Vertical Deep Pipeline: Story -> Stride -> Multi-Layer Parallax -> Soundscape -> 16:9 & 9:16 Master
+
+title = "Cat Odyssey: Journey Across Horizons"
+description = "A curious Munchkin cat wanders from a sunny riverbank to an ocean cablecar overlook and beyond."
+
+[actor]
+name = "Munchkin Wanderer"
+sheet_path = "outputs/munchkin-walking/sprite_walk_4x5.png"
+full_sheet_path = "outputs/munchkin-walking/sprite_4x7.png"
+scale = 0.45
+floor_y = 352
+stride_pixels = 165.8
+contact_shadow = true
+shadow_opacity = 0.38
+shadow_width_scale = 0.70
+shadow_height = 14
+footstep_contact_frames = [3, 10]
+
+[director]
+canvas_w = 640
+canvas_h = 360
+fps = 24
+bg_color = "#f4f5f7"
+output_formats = ["16:9", "9:16"]
+
+[soundscape]
+music_track = "inputs/music/01_ymtCVuf481Q.m4a"
+music_volume = 0.65
+ambient_volume = 0.40
+foley_footsteps = true
+foley_volume = 0.55
+ducking = true
+
+[[scenes]]
+id = "picnic-river"
+name = "Riverbank Path"
+sheet_path = "outputs/couple-picnic-river/sprite_bg.png"
+ground_material = "GRASS"
+ambient_mood = "FOREST_WIND"
+scale = 1.0
+y = 0
+duration = 6.0
+gap_after = 0.0
+
+[[scenes]]
+id = "ocean-cablecar"
+name = "Ocean Cablecar Overlook"
+sheet_path = "outputs/couple-ocean-cablecar-view/sprite_bg.png"
+left_bg_path = "inputs/bridges/picnic-river-to-ocean-cablecar-bridge.png"
+left_bg_offset = 640
+ground_material = "WOODEN_FLOOR"
+ambient_mood = "OCEAN_WAVES"
+scale = 1.0
+y = 0
+duration = 6.0
+hold_duration = 2.0
+hold_action = "SIT_GAZE"
+overlap_prev = 160

@@ -110,3 +110,30 @@ def test_mcp_import_timeline_example():
     assert "project_id" in import_res
 
 
+def test_mcp_render_odyssey_journey(monkeypatch, tmp_path):
+    import workshop.mcp_server as mcp_mod
+
+    # Mock OdysseyOrchestrator to avoid full rendering in unit test
+    class MockOrchestrator:
+        def __init__(self, journey, root_dir=None):
+            self.journey = journey
+
+        def run(self, output_dir):
+            return {
+                "title": self.journey.title,
+                "duration": 12.0,
+                "widescreen_16_9": str(tmp_path / "master.mp4"),
+                "vertical_9_16": str(tmp_path / "shorts.mp4"),
+                "footstep_count": 14,
+            }
+
+    import workshop.odyssey.orchestrator as orch_mod
+    monkeypatch.setattr(orch_mod, "OdysseyOrchestrator", MockOrchestrator)
+
+    res_raw = mcp_mod.render_odyssey_journey("timelines/cat_odyssey.example.toml", output_dir=str(tmp_path))
+    res = json.loads(res_raw)
+    assert res["status"] == "success"
+    assert res["production"]["title"] == "Cat Odyssey: Journey Across Horizons"
+    assert res["production"]["footstep_count"] == 14
+
+
