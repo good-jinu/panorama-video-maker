@@ -25,14 +25,22 @@ uv run python -m workshop.make "a small car riding through world's cities"
 - Supports rolling and floating actors (cars, trains, balloons, boats). Walking characters still need the video-to-sprite workflow.
 - MCP: `plan_prompt_journey` → `make_journey` → `get_journey_status`.
 
-### 4. Studio Server & Web UI
+### 4. Chat App (make and edit videos by talking)
+A Next.js app with an [AI SDK](https://ai-sdk.dev) v7 agent that plans, edits and renders through the same pipeline. It asks for approval before any image is generated; speed or size changes re-render for free.
+```bash
+cd chat && pnpm install && pnpm dev
+```
+- Open `http://localhost:3000`. `pnpm dev` also starts the Python API on port 8000.
+- Requires Node 22+ and pnpm. Uses the same `.env` keys as above; set `CHAT_MODEL` to change the chat model (default `gemini-flash-latest`).
+
+### 5. Studio Server & Web UI
 ```bash
 uv run uvicorn workshop.server.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 - API Docs: `http://localhost:8000/docs`
 - Web Studio: `http://localhost:8000/web`
 
-### 5. MCP Agent Server
+### 6. MCP Agent Server
 Add to your agent configuration (`claude_desktop_config.json`, Cursor, etc.):
 ```json
 {
@@ -46,7 +54,7 @@ Add to your agent configuration (`claude_desktop_config.json`, Cursor, etc.):
 }
 ```
 
-### 6. Testing
+### 7. Testing
 ```bash
 uv run pytest
 ```

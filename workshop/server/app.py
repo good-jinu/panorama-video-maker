@@ -30,6 +30,7 @@ from workshop.db.models import (
     SceneUpdate,
 )
 from workshop.mcp_server import mcp
+from workshop.server.make_routes import router as make_router
 from workshop.services.project_service import (
     get_project_with_relations,
     import_timeline_toml_to_project,
@@ -75,6 +76,8 @@ outputs_dir.mkdir(parents=True, exist_ok=True)
 if web_dir.exists():
     app.mount("/web", StaticFiles(directory=str(web_dir), html=True), name="web")
 app.mount("/outputs", StaticFiles(directory=str(outputs_dir)), name="outputs")
+
+app.include_router(make_router)
 
 
 

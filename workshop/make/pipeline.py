@@ -5,6 +5,8 @@ so a re-run after a failure (or after editing `plan.json`) only pays for what is
 
     <project>/
       plan.json                 planner output (edit it and re-run to change the journey)
+      options.json              render settings from the last run (speed, actor size)
+      status.json               progress of a background run
       actor/source.png          generated actor image
       actor/sprite.png/.json    animated loop
       scenes/<id>.png           3H x H scene backgrounds
@@ -16,8 +18,10 @@ so a re-run after a failure (or after editing `plan.json`) only pays for what is
 from __future__ import annotations
 
 import json
+import threading
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +45,7 @@ class MakeOptions:
     canvas_h: int = 360
     fps: int = 24
     output_formats: tuple[str, ...] = ("16:9", "9:16")
+    actor_size: float = 1.0  # multiplier on the default actor height
 
 
 class MakeProject:
@@ -53,7 +58,7 @@ class MakeProject:
         log: Callable[[str], None] = print,
     ):
         self.root = Path(root).resolve()
-        self.options = options or MakeOptions()
+        self.options = options or self.saved_options() or MakeOptions()
         self.images = images or assets.OpenAIImageBackend()
         self.planner = planner
         self.log = log
@@ -83,6 +88,25 @@ class MakeProject:
     @property
     def journey_path(self) -> Path:
         return self.root / "journey.toml"
+
+    @property
+    def options_path(self) -> Path:
+        return self.root / "options.json"
+
+    @property
+    def status_path(self) -> Path:
+        return self.root / "status.json"
+
+    def saved_options(self) -> MakeOptions | None:
+        if not self.options_path.exists():
+            return None
+        data = json.loads(self.options_path.read_text())
+        data["output_formats"] = tuple(data.get("output_formats", MakeOptions.output_formats))
+        return MakeOptions(**data)
+
+    def save_options(self) -> None:
+        self.options_path.parent.mkdir(parents=True, exist_ok=True)
+        self.options_path.write_text(json.dumps(asdict(self.options), indent=2))
 
     def _rel(self, path: Path) -> str:
         """Journey paths are relative to the project folder so the folder can be moved."""
@@ -122,6 +146,57 @@ class MakeProject:
             if not self.bridge_path(a.id, b.id).exists():
                 calls.append(f"bridge: {a.name} -> {b.name}")
         return calls
+
+    def load_plan(self) -> JourneyPlan:
+        if not self.plan_path.exists():
+            raise FileNotFoundError(f"No plan at {self.plan_path}")
+        return JourneyPlan.model_validate_json(self.plan_path.read_text())
+
+    def update_plan(self, new: JourneyPlan) -> list[str]:
+        """Replace the plan and delete only the cached images it makes stale. Returns what was removed."""
+        old = self.load_plan()
+        removed: list[str] = []
+
+        if new.style != old.style or new.actor.visual != old.actor.visual or new.actor.kind != old.actor.kind:
+            removed += self._remove_actor()
+
+        old_scenes = {s.id: s for s in old.scenes}
+        for s in new.scenes:
+            prev = old_scenes.get(s.id)
+            changed = prev is not None and (
+                new.style != old.style or prev.visual != s.visual or prev.ground_material != s.ground_material
+            )
+            if changed:
+                removed += self._remove_scene(s.id)
+        # Bridges are keyed by neighbour pairs, so new orders or new scenes simply miss the cache.
+
+        self.plan_path.write_text(new.model_dump_json(indent=2))
+        return removed
+
+    def redo(self, target: str) -> list[str]:
+        """Delete one cached image ("actor" or a scene id, which also drops its bridges) so the next run remakes it."""
+        if target == "actor":
+            return self._remove_actor()
+        plan = self.load_plan()
+        if target not in {s.id for s in plan.scenes}:
+            raise ValueError(f"Unknown target {target!r}; use 'actor' or one of {[s.id for s in plan.scenes]}")
+        return self._remove_scene(target)
+
+    def _remove(self, paths: list[Path]) -> list[str]:
+        removed = []
+        for p in paths:
+            if p.exists():
+                p.unlink()
+                removed.append(p.relative_to(self.root).as_posix())
+        return removed
+
+    def _remove_actor(self) -> list[str]:
+        sheet = self.actor_sheet_path
+        return self._remove([self.actor_source_path, sheet, sheet.with_suffix(".json")])
+
+    def _remove_scene(self, scene_id: str) -> list[str]:
+        bridges = [p for p in (self.root / "bridges").glob("*.png") if scene_id in p.stem.split("--")]
+        return self._remove([self.scene_path(scene_id), *bridges])
 
     def build_actor(self, plan: JourneyPlan) -> Path:
         if not self.actor_source_path.exists():
@@ -186,7 +261,7 @@ class MakeProject:
             actor=HeroActorSpec(
                 name=plan.actor.name,
                 sheet_path=self._rel(actor_sheet),
-                scale=assets.actor_scale(actor_sheet, kind, h),
+                scale=round(assets.actor_scale(actor_sheet, kind, h) * opt.actor_size, 4),
                 floor_y=assets.actor_floor_y(kind, h),
                 stride_pixels=None,
                 contact_shadow=kind == ActorKind.WHEELED,
@@ -222,6 +297,7 @@ class MakeProject:
     def render(self, journey: JourneySpec) -> dict[str, Any]:
         from workshop.odyssey.orchestrator import OdysseyOrchestrator
 
+        self.log("Rendering video...")
         return OdysseyOrchestrator(journey, root_dir=self.root).run(output_dir=self.root / "render")
 
     def run(self, prompt: str | None, confirm: Callable[[JourneyPlan, list[str]], bool] | None = None) -> dict[str, Any]:
@@ -231,6 +307,7 @@ class MakeProject:
         if pending and confirm is not None and not confirm(plan, pending):
             return {"status": "cancelled", "plan": str(self.plan_path), "pending_image_calls": pending}
 
+        self.save_options()
         actor_sheet = self.build_actor(plan)
         scenes = self.build_scenes(plan)
         bridges = self.build_bridges(plan, scenes)
@@ -238,6 +315,48 @@ class MakeProject:
         journey = self.build_journey(plan, actor_sheet, segments)
         result = self.render(journey)
         return {"status": "completed", "project": str(self.root), "journey": str(self.journey_path), **result}
+
+    # -- background runs (web API, MCP) ------------------------------------
+    def read_status(self) -> dict[str, Any] | None:
+        if not self.status_path.exists():
+            return None
+        return json.loads(self.status_path.read_text())
+
+    def _write_status(self, **fields: Any) -> None:
+        self.status_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {"updated_at": datetime.now(UTC).isoformat(), **fields}
+        # Write then rename, so a reader polling mid-write never sees a half-written file
+        tmp = self.status_path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(payload, ensure_ascii=False))
+        tmp.replace(self.status_path)
+
+    def is_running(self) -> bool:
+        status = self.read_status()
+        return status is not None and status.get("status") in ("QUEUED", "PROCESSING")
+
+    def start_background_run(self) -> None:
+        """Run the whole pipeline in a thread, reporting progress through status.json."""
+        if self.is_running():
+            raise RuntimeError(f"A run is already in progress for {self.root.name}")
+        self.check_supported(self.load_plan())
+        self._write_status(status="QUEUED")
+        log = self.log
+
+        def report(msg: str) -> None:
+            self._write_status(status="PROCESSING", step=msg)
+            log(msg)
+
+        def work() -> None:
+            self.log = report
+            try:
+                result = self.run(prompt=None)
+                self._write_status(status="COMPLETED", result=result)
+            except Exception as e:
+                self._write_status(status="FAILED", error=str(e))
+            finally:
+                self.log = log
+
+        threading.Thread(target=work, daemon=True).start()
 
 
 # ---------------------------------------------------------------------------

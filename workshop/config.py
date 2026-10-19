@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # Processing Defaults
     default_imagen_model: str = "gpt-image-2.5-sunburst-2026-09-08"
-    default_planner_model: str = "gemini-2.5-flash"
+    default_planner_model: str = "gemini-flash-latest"
     default_gif_encoder: str = "auto"
 
     @property

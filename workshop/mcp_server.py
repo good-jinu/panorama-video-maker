@@ -609,32 +609,15 @@ def make_journey(project_dir: str, seconds_per_scene: float = 12.0) -> str:
     Runs in the background (several minutes, and it spends image API credits for each pending
     call reported by `plan_prompt_journey`). Poll `get_journey_status` for progress.
     """
-    import threading
-
-    from workshop.make import MakeOptions, MakeProject
+    from workshop.make import MakeProject
 
     root = _make_project_dir(project_dir)
-    if not (root / "plan.json").exists():
-        return json.dumps({"error": f"No plan.json in {root}; call plan_prompt_journey first"})
-    status_path = root / "status.json"
-
-    def write_status(**fields) -> None:
-        status_path.write_text(json.dumps({"updated_at": datetime.now(UTC).isoformat(), **fields}, ensure_ascii=False))
-
-    def work() -> None:
-        project = MakeProject(
-            root,
-            MakeOptions(seconds_per_scene=seconds_per_scene),
-            log=lambda msg: write_status(status="PROCESSING", step=msg),
-        )
-        try:
-            result = project.run(prompt=None)
-            write_status(status="COMPLETED", result=result)
-        except Exception as e:
-            write_status(status="FAILED", error=str(e))
-
-    write_status(status="QUEUED")
-    threading.Thread(target=work, daemon=True).start()
+    project = MakeProject(root)
+    project.options.seconds_per_scene = seconds_per_scene
+    try:
+        project.start_background_run()
+    except Exception as e:
+        return json.dumps({"error": str(e)})
     return json.dumps({"status": "QUEUED", "project_dir": str(root)})
 
 
