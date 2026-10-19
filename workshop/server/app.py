@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="AI Video Studio Engine API",
+    title="Panorama Video Maker API",
     description="Backend API for managing video projects, multi-scene timelines, generative assets, and render jobs.",
     version="1.0.0",
     lifespan=lifespan,
@@ -273,7 +273,7 @@ class ExtractSpriteRequest(BaseModel):
     crop: bool = False
     keep_frames: bool = False
     keep_background: bool = False
-    model_name: str = "rmbg"
+    model_name: str | None = None
     zoom_start: float = 1.0
     zoom_step: float = 0.0
 

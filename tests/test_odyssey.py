@@ -1,4 +1,4 @@
-"""Tests for the Odyssey Studio vertical deep pipeline."""
+"""Tests for the Panorama Video Maker odyssey pipeline."""
 from pathlib import Path
 
 import numpy as np

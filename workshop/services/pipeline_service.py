@@ -36,7 +36,7 @@ def extract_sprite_pipeline(
     crop: bool = False,
     keep_frames: bool = False,
     keep_background: bool = False,
-    model_name: str = "rmbg",
+    model_name: str | None = None,
     zoom_start: float = 1.0,
     zoom_step: float = 0.0,
 ) -> Path:
@@ -51,7 +51,7 @@ def extract_sprite_pipeline(
         crop=crop,
         keep_frames=keep_frames,
         keep_background=keep_background,
-        model_name=model_name,
+        model=model_name,
         zoom_start=zoom_start,
         zoom_step=zoom_step,
     )

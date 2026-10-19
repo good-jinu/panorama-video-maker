@@ -1,4 +1,4 @@
-"""Odyssey Studio - Vertical Deep Production Engine for Side-Scrolling Journey Videos."""
+"""Panorama Video Maker odyssey mode: Vertical Deep Production Engine for Side-Scrolling Journey Videos."""
 from workshop.odyssey.actor_fsm import FootstepEvent, OdysseyActorFSM
 from workshop.odyssey.director import OdysseyDirector, ViewportCrop
 from workshop.odyssey.orchestrator import OdysseyOrchestrator

@@ -111,6 +111,10 @@ class DirectorSpec(BaseModel):
     speed: float | None = None
     camera_easing: bool = True
     bg_color: str = "#000000"
+    hold_last_scene: bool = Field(
+        default=False,
+        description="End the video when the last scene fills the screen instead of scrolling it off.",
+    )
     output_formats: list[str] = Field(
         default_factory=lambda: ["16:9"],
         description="Target formats: '16:9' (Widescreen), '9:16' (Shorts/TikTok/Reels).",

@@ -60,6 +60,7 @@ class OdysseyOrchestrator:
             canvas_h=director.canvas_h,
             fps=director.fps,
             bg_color=director.bg_color,
+            hold_last_scene=director.hold_last_scene,
             speed=director.speed,
             char_sheet=Path(actor.sheet_path),
             char_full_sheet=Path(actor.full_sheet_path) if actor.full_sheet_path else None,
@@ -85,7 +86,7 @@ class OdysseyOrchestrator:
         total_duration = stage.timeline.total_duration
         total_frames = round(total_duration * fps)
 
-        print(f"🎬 [ODYSSEY STUDIO] Initiating A-to-Z Production: '{self.journey.title}'")
+        print(f"🎬 [PANORAMA VIDEO MAKER] Initiating A-to-Z Production: '{self.journey.title}'")
         print(f"   Duration: {total_duration:.1f}s ({total_frames} frames @ {fps} fps)")
         print(f"   Protagonist: {self.journey.actor.name} (Stride={self.journey.actor.stride_pixels}px, Scale={self.journey.actor.scale})")
         print(f"   Scenes: {len(self.journey.scenes)} chapter(s)")
@@ -172,13 +173,14 @@ class OdysseyOrchestrator:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Odyssey Studio A-to-Z Video Production Engine")
+    parser = argparse.ArgumentParser(description="Panorama Video Maker: render an odyssey journey from a TOML spec")
     parser.add_argument("journey_toml", type=Path, help="Path to Journey TOML specification")
     parser.add_argument("-o", "--output-dir", type=Path, default=Path("outputs/odyssey"), help="Output directory")
     args = parser.parse_args()
 
     journey = JourneySpec.from_toml_file(args.journey_toml)
-    orchestrator = OdysseyOrchestrator(journey)
+    # Asset paths resolve against the TOML's folder first, then the current directory
+    orchestrator = OdysseyOrchestrator(journey, root_dir=args.journey_toml.resolve().parent)
     orchestrator.run(output_dir=args.output_dir)
 
 

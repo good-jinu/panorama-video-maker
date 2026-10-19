@@ -109,6 +109,91 @@ def call_openai_image_edit(
     return Image.open(io.BytesIO(raw_bytes)).convert("RGBA")
 
 
+def call_openai_image_generate(
+    prompt: str,
+    model: str = DEFAULT_MODEL,
+    size: str = "1536x512",
+    quality: str = "high",
+    output_format: str = "png",
+    background: str | None = None,
+    api_key: str | None = None,
+    timeout: int = 180,
+) -> Image.Image:
+    """Call OpenAI `POST /v1/images/generations` (text-to-image) and return the decoded PIL Image."""
+    key = api_key or load_env_key("OPENAI_API_KEY")
+
+    payload: dict = {
+        "model": model,
+        "prompt": prompt,
+        "quality": quality,
+        "size": size,
+        "output_format": output_format,
+    }
+    if background is not None:
+        payload["background"] = background
+
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/images/generations",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {key}",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"OpenAI /v1/images/generations failed (HTTP {e.code}): {err_msg}") from e
+
+    b64_data = body["data"][0]["b64_json"]
+    raw_bytes = base64.b64decode(b64_data)
+    return Image.open(io.BytesIO(raw_bytes)).convert("RGBA")
+
+
+def call_gemini_json(
+    prompt: str,
+    response_schema: dict,
+    model: str | None = None,
+    api_key: str | None = None,
+    timeout: int = 120,
+) -> dict:
+    """Call Gemini `generateContent` with a JSON response schema and return the parsed object."""
+    key = api_key or load_env_key("GOOGLE_GENERATIVE_AI_API_KEY")
+    model = model or settings.default_planner_model
+
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": response_schema,
+        },
+    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "x-goog-api-key": key},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Gemini generateContent failed (HTTP {e.code}): {err_msg}") from e
+
+    try:
+        text = body["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError) as e:
+        raise RuntimeError(f"Gemini returned no content: {body}") from e
+    return json.loads(text)
+
+
 def call_gemini_omni_video(
     prompt: str,
     output_path: str | Path,

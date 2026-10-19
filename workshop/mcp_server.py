@@ -42,7 +42,7 @@ from workshop.services.render_service import run_render_job, start_render_job
 init_db()
 
 mcp = MCPServer(
-    name="AI-Video-Studio",
+    name="panorama-video-maker",
     description="Full-stack AI video production platform: manage multi-scene projects, tracking shots, asset lineage, bridge synthesis, and background rendering.",
     instructions="Use these tools to plan, structure, generate assets, and render multi-scene videos.",
 )
@@ -322,7 +322,7 @@ def extract_sprite_from_video(
     crop: bool = False,
     keep_frames: bool = False,
     keep_background: bool = False,
-    model_name: str = "rmbg",
+    model_name: str | None = None,
     zoom_start: float = 1.0,
     zoom_step: float = 0.0,
 ) -> str:
@@ -571,6 +571,80 @@ def render_odyssey_journey(
         })
     except Exception as e:
         return json.dumps({"error": str(e)})
+
+
+def _make_project_dir(project_dir: str) -> Path:
+    p = Path(project_dir)
+    return p if p.is_absolute() else ROOT_DIR / p
+
+
+@mcp.tool()
+def plan_prompt_journey(prompt: str, num_scenes: int = 5, project_dir: str | None = None) -> str:
+    """Step 1 of prompt-to-video: plan a journey from one sentence (one cheap LLM call, no images).
+
+    Returns the plan and the image API calls `make_journey` would make, so the cost can be shown
+    to the user before anything is generated. Edit `<project_dir>/plan.json` to change the plan.
+    """
+    try:
+        from workshop.make import MakeOptions, MakeProject
+        from workshop.make.plan import slugify
+
+        root = _make_project_dir(project_dir or f"outputs/make/{slugify(prompt)[:48]}")
+        project = MakeProject(root, MakeOptions(num_scenes=num_scenes))
+        plan = project.load_or_plan(prompt)
+        project.check_supported(plan)
+        return json.dumps({
+            "project_dir": str(root),
+            "plan": plan.model_dump(mode="json"),
+            "pending_image_calls": project.pending_image_calls(plan),
+        }, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+def make_journey(project_dir: str, seconds_per_scene: float = 12.0) -> str:
+    """Step 2 of prompt-to-video: generate every asset for a planned journey and render it.
+
+    Runs in the background (several minutes, and it spends image API credits for each pending
+    call reported by `plan_prompt_journey`). Poll `get_journey_status` for progress.
+    """
+    import threading
+
+    from workshop.make import MakeOptions, MakeProject
+
+    root = _make_project_dir(project_dir)
+    if not (root / "plan.json").exists():
+        return json.dumps({"error": f"No plan.json in {root}; call plan_prompt_journey first"})
+    status_path = root / "status.json"
+
+    def write_status(**fields) -> None:
+        status_path.write_text(json.dumps({"updated_at": datetime.now(UTC).isoformat(), **fields}, ensure_ascii=False))
+
+    def work() -> None:
+        project = MakeProject(
+            root,
+            MakeOptions(seconds_per_scene=seconds_per_scene),
+            log=lambda msg: write_status(status="PROCESSING", step=msg),
+        )
+        try:
+            result = project.run(prompt=None)
+            write_status(status="COMPLETED", result=result)
+        except Exception as e:
+            write_status(status="FAILED", error=str(e))
+
+    write_status(status="QUEUED")
+    threading.Thread(target=work, daemon=True).start()
+    return json.dumps({"status": "QUEUED", "project_dir": str(root)})
+
+
+@mcp.tool()
+def get_journey_status(project_dir: str) -> str:
+    """Check progress of `make_journey` (QUEUED, PROCESSING with current step, COMPLETED, FAILED)."""
+    status_path = _make_project_dir(project_dir) / "status.json"
+    if not status_path.exists():
+        return json.dumps({"error": f"No make_journey run found in {project_dir}"})
+    return status_path.read_text()
 
 
 def main():
